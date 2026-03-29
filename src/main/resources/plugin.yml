@@ -1,0 +1,59 @@
+name: KZPlugin
+version: 1.0.0
+main: com.kz.plugin.KZPlugin
+api-version: 1.20
+description: KZ Complete Server Plugin System
+authors: [KZTeam]
+
+commands:
+  shop:
+    description: Open Shop GUI
+    usage: /shop
+    aliases: [shopgui, toko]
+  sell:
+    description: Open Sell GUI
+    usage: /sell
+    aliases: [sellgui]
+  ah:
+    description: Auction House
+    usage: /ah
+    aliases: [market, auction]
+  island:
+    description: Island Commands
+    usage: /island <create|home|delete|upgrade>
+  land:
+    description: Land Claim System
+    usage: /land <claim|info|invite>
+  job:
+    description: Job System
+    usage: /job <miner|farmer|hunter>
+  daily:
+    description: Daily Reward
+    usage: /daily
+  weekly:
+    description: Weekly Reward
+    usage: /weekly
+  tpa:
+    description: Teleport Request
+    usage: /tpa <player>
+  bal:
+    description: Check Balance
+    usage: /bal
+    aliases: [balance, money]
+  pay:
+    description: Transfer Money
+    usage: /pay <player> <amount>
+  lobby:
+    description: Teleport to Lobby
+    usage: /lobby
+  admin:
+    description: Administrator Commands
+    usage: /admin <command>
+
+permissions:
+  kzplugin.use:
+    description: Use KZ Plugin
+    default: true
+  kzplugin.admin:
+    description: Administrator commands
+    default: false
