@@ -1,0 +1,249 @@
+name: KZPlugin
+version: 1.0.0
+main: com.kz.plugin.KZPlugin
+api-version: 1.20
+description: KZ Complete Server Plugin System
+authors: [KZTeam]
+
+commands:
+  # ══════ SHOP & ECONOMY ══════
+  shop:
+    description: Open Shop GUI
+    usage: /shop
+    aliases: [shopgui, toko]
+  sell:
+    description: Open Sell GUI
+    usage: /sell
+    aliases: [sellgui]
+  ah:
+    description: Auction House
+    usage: /ah [sell|cancel] [price] [amount]
+    aliases: [market, auction]
+  inbox:
+    description: Check expired items inbox
+    usage: /inbox
+  bal:
+    description: Check balance
+    usage: /bal [player]
+    aliases: [balance, money]
+  pay:
+    description: Transfer money
+    usage: /pay <player> <amount>
+  baltop:
+    description: Top 10 richest players
+    usage: /baltop
+  cf:
+    description: Coinflip gambling
+    usage: /cf <amount>
+    aliases: [coinflip]
+
+  # ══════ ISLAND SYSTEM ══════
+  createisland:
+    description: Create new island
+    usage: /createisland <mode>
+  deleteisland:
+    description: Delete your island
+    usage: /deleteisland
+  home:
+    description: Teleport to island
+    usage: /home
+  upisland:
+    description: Upgrade island border
+    usage: /upisland
+    aliases: [upgradeisland]
+  islandsetting:
+    description: View island settings
+    usage: /islandsetting
+    aliases: [islandinfo]
+  nameisland:
+    description: Rename your island
+    usage: /nameisland <name>
+  visit:
+    description: Visit player island
+    usage: /visit <player>
+  topisland:
+    description: Top 10 islands
+    usage: /topisland
+  invite:
+    description: Invite player to island
+    usage: /invite <player>
+  accept:
+    description: Accept island invite
+    usage: /accept
+  deny:
+    description: Deny island invite
+    usage: /deny
+  trust:
+    description: Trust player on island
+    usage: /trust <player>
+  untrust:
+    description: Untrust player
+    usage: /untrust <player>
+
+  # ══════ TPA SYSTEM ══════
+  tpa:
+    description: Request teleport
+    usage: /tpa <player>
+  tpaccept:
+    description: Accept TPA request
+    usage: /tpaccept
+  tpadeny:
+    description: Deny TPA request
+    usage: /tpadeny
+  tpcancel:
+    description: Cancel TPA request
+    usage: /tpcancel
+
+  # ══════ LAND SYSTEM ══════
+  landinvite:
+    description: Invite player to land
+    usage: /landinvite <player>
+  landaccept:
+    description: Accept land invite
+    usage: /landaccept
+  landdeny:
+    description: Deny land invite
+    usage: /landdeny
+  landrole:
+    description: Set player role in land
+    usage: /landrole <player> <role>
+  landkick:
+    description: Kick player from land
+    usage: /landkick <player>
+  trustland:
+    description: Trust player on land
+    usage: /trustland <player>
+  memberrule:
+    description: Open member rules GUI
+    usage: /memberrule
+  trustrule:
+    description: Open trust rules GUI
+    usage: /trustrule
+  setlandname:
+    description: Rename your land
+    usage: /setlandname <name>
+  deleteland:
+    description: Delete your land
+    usage: /deleteland
+  cekcapasitas:
+    description: Check land capacity info
+    usage: /cekcapasitas
+    aliases: [landinfo]
+
+  # ══════ JOB & REWARD ══════
+  job:
+    description: Job system
+    usage: /job [miner|farmer|hunter]
+  daily:
+    description: Daily reward
+    usage: /daily
+  weekly:
+    description: Weekly reward
+    usage: /weekly
+
+  # ══════ LOBBY & INFO ══════
+  lobby:
+    description: Teleport to lobby
+    usage: /lobby
+  spawn:
+    description: Teleport to spawn
+    usage: /spawn
+  help:
+    description: Server help
+    usage: /help
+  stats:
+    description: Player statistics
+    usage: /stats [player]
+  rank:
+    description: Rank information
+    usage: /rank
+  discord:
+    description: Discord link
+    usage: /discord
+  website:
+    description: Website link
+    usage: /website
+    aliases: [web, store]
+  rules:
+    description: Server rules
+    usage: /rules
+
+  # ══════ ADMIN ══════
+  setlobby:
+    description: Set lobby spawn
+    usage: /setlobby
+    permission: kzplugin.admin
+  setspawn:
+    description: Set mode spawn
+    usage: /setspawn <mode>
+    permission: kzplugin.admin
+  createnpc:
+    description: Create NPC
+    usage: /createnpc <mode> <name>
+    permission: kzplugin.admin
+  removenpc:
+    description: Remove NPC
+    usage: /removenpc
+    permission: kzplugin.admin
+  listnpc:
+    description: List all NPCs
+    usage: /listnpc
+    permission: kzplugin.admin
+  givebal:
+    description: Give balance to player
+    usage: /givebal <player> <amount>
+    permission: kzplugin.admin
+  removebal:
+    description: Remove balance from player
+    usage: /removebal <player> <amount>
+    permission: kzplugin.admin
+  setrank:
+    description: Set player rank
+    usage: /setrank <player> <rank>
+    permission: kzplugin.admin
+  maintenance:
+    description: Toggle maintenance mode
+    usage: /maintenance <on|off>
+    permission: kzplugin.admin
+  announce:
+    description: Broadcast announcement
+    usage: /announce <message>
+    permission: kzplugin.admin
+
+permissions:
+  kzplugin.use:
+    description: Basic KZ Plugin access
+    default: true
+  kzplugin.admin:
+    description: Administrator commands
+    default: op
+  kzplugin.shop:
+    description: Access shop
+    default: true
+  kzplugin.sell:
+    description: Access sell GUI
+    default: true
+  kzplugin.auction:
+    description: Access auction house
+    default: true
+  kzplugin.island:
+    description: Create and manage islands
+    default: true
+  kzplugin.land:
+    description: Claim and manage land
+    default: true
+  kzplugin.tpa:
+    description: Use TPA system
+    default: true
+  kzplugin.job:
+    description: Use job system
+    default: true
+  kzplugin.daily:
+    description: Claim daily reward
+    default: true
+  kzplugin.weekly:
+    description: Claim weekly reward
+    default: true
+  kzplugin.coinflip:
+    description: Use coinflip
+    default: true
