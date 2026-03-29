@@ -1,0 +1,122 @@
+# ══════════════════════════════════════
+#  KZ PLUGIN v1.0.0 - Configuration
+# ══════════════════════════════════════
+
+# ── Server ──
+server-name: "KZ Server"
+maintenance: false
+
+# ── Spawn (set via /setspawn) ──
+spawn:
+  world: "world"
+  x: 0.0
+  y: 64.0
+  z: 0.0
+  yaw: 0.0
+  pitch: 0.0
+
+# ── Economy ──
+economy:
+  starting-balance:
+    oneblock: 1000
+    skyblock: 1000
+    acid: 500
+    island: 2000
+    lobby: 0
+  currency-symbol: "$"
+
+# ── Island ──
+island:
+  default-border: 25
+  upgrade-multiplier: 100
+  modes:
+    - oneblock
+    - skyblock
+    - acid
+    - island
+
+# ── Land ──
+land:
+  min-size: 5
+  max-size:
+    Member: 25
+    Iron: 30
+    Gold: 35
+    Diamond: 40
+    Emerald: 50
+    Obsidian: 60
+    Onyx: 75
+    Phantom: 100
+    Eclipse: 150
+    Ethereal: 200
+    Owner: 999
+
+# ── Job ──
+job:
+  change-cooldown-ms: 3600000
+  available:
+    - miner
+    - farmer
+    - hunter
+
+# ── Daily Reward ──
+daily:
+  cooldown-ms: 86400000
+  streak-reset-ms: 172800000
+  rewards:
+    default: 1000
+    streak3: 1500
+    streak5: 2000
+    streak7: 3000
+    streak14: 5000
+    streak30: 10000
+
+# ── Weekly Reward ──
+weekly:
+  cooldown-ms: 604800000
+  reward: 10000
+
+# ── TPA ──
+tpa:
+  expire-ticks: 1200
+
+# ── Auction House ──
+auction:
+  max-listings-per-player: 5
+  expire-ms: 86400000
+
+# ── Coinflip ──
+coinflip:
+  max-bet: 50000
+
+# ── Scoreboard ──
+scoreboard:
+  enabled: true
+  update-ticks: 20
+
+# ── ClearLag ──
+clearlag:
+  interval-ticks: 12000
+  warning-ticks: 600
+
+# ── Auto Save ──
+autosave:
+  interval-ticks: 6000
+
+# ── Fireworks ──
+fireworks:
+  enabled: true
+  interval-ticks: 3600
+
+# ── Links ──
+links:
+  discord: "https://discord.gg/kzserver"
+  website: "https://store.kzserver.com"
+
+# ── Messages ──
+messages:
+  prefix: "§b§lKZ §8»"
+  no-permission: "§7You don't have permission."
+  player-only: "§7This command is for players only."
+  player-not-found: "§7Player not found."
+  player-not-online: "§7Player is not online."
