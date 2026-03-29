@@ -159,9 +159,9 @@ public class ItemDatabase {
         armor.items.add(new ShopItem(Material.ELYTRA, 250000, 25000, "armor"));
         armor.items.add(new ShopItem(Material.TURTLE_HELMET, 30000, 3000, "armor"));
         armor.items.add(new ShopItem(Material.SADDLE, 15000, 1500, "armor"));
-        armor.items.add(new ShopItem(Material.HORSE_ARMOR_IRON, 10000, 1000, "armor"));
-        armor.items.add(new ShopItem(Material.HORSE_ARMOR_GOLD, 20000, 2000, "armor"));
-        armor.items.add(new ShopItem(Material.HORSE_ARMOR_DIAMOND, 35000, 3500, "armor"));
+        armor.items.add(new ShopItem(Material.IRON_HORSE_ARMOR, 10000, 1000, "armor"));
+        armor.items.add(new ShopItem(Material.GOLDEN_HORSE_ARMOR, 20000, 2000, "armor"));
+        armor.items.add(new ShopItem(Material.DIAMOND_HORSE_ARMOR, 35000, 3500, "armor"));
 
         categories.put("armor", armor);
 
