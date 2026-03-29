@@ -120,4 +120,10 @@ public class TPASystem {
             sender.sendMessage("§c§lKZ §8» §7No active TPA requests.");
         }
     }
+
+    // Method baru untuk clear requests saat player quit
+    public void removeRequests(UUID uuid) {
+        pendingRequests.remove(uuid);
+        pendingRequests.entrySet().removeIf(entry -> entry.getValue().equals(uuid));
+    }
 }
