@@ -116,7 +116,7 @@ public class OneBlockSystem {
                 Material.CLAY, Material.FROSTED_ICE
             ),
             Arrays.asList(
-                EntityType.STRAY, EntityType.POLAR_BEAR, EntityType.SNOW_GOLEM,
+                EntityType.STRAY, EntityType.POLAR_BEAR, EntityType.SNOWMAN,
                 EntityType.RABBIT, EntityType.WOLF
             ),
             18
@@ -443,8 +443,8 @@ public class OneBlockSystem {
                 for (int i = 0; i < countdown; i++) bar += "▮ ";
                 for (int i = countdown; i < 5; i++) bar += "§8▮ ";
 
-                player.sendActionBar(newPhase.color + "§l" + newPhase.name +
-                    " §7starting in §f" + countdown + "s " + bar);
+               player.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR, 
+    net.md_5.bungee.api.chat.TextComponent.fromLegacyText(newPhase.color + "§l" + newPhase.name + " §7starting in §f" + countdown + "s " + bar));
 
                 player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f + (0.2f * (5 - countdown)));
                 countdown--;
