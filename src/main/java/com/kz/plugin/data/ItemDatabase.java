@@ -311,7 +311,7 @@ public class ItemDatabase {
         resources.items.add(new ShopItem(Material.ROTTEN_FLESH, 50, 5, "resources"));
         resources.items.add(new ShopItem(Material.SPIDER_EYE, 200, 20, "resources"));
         resources.items.add(new ShopItem(Material.ENDER_EYE, 5000, 500, "resources"));
-        resources.items.add(new ShopItem(Material.SCUTE, 2000, 200, "resources"));
+        resources.items.add(new ShopItem(Material.TURTLE_SCUTE, 2000, 200, "resources"));
         resources.items.add(new ShopItem(Material.PHANTOM_MEMBRANE, 2000, 200, "resources"));
         resources.items.add(new ShopItem(Material.RABBIT_FOOT, 1000, 100, "resources"));
 
