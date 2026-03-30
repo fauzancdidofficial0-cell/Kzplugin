@@ -1,3 +1,6 @@
+lue != null ? value : 0;
+    }
+}
 package com.kz.plugin.listeners;
 
 import com.kz.plugin.systems.SpawnerPriceRegistry;
@@ -37,7 +40,8 @@ public class SpawnerDropListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSpawnerSpawn(CreatureSpawnEvent event) {
         if (event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.SPAWNER) return;
-        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        if (!(event.getEntity() instanceof LivingEntity)) return;
+        LivingEntity living = (LivingEntity) event.getEntity();
         living.getPersistentDataContainer().set(spawnerMobKey, PersistentDataType.BYTE, (byte) 1);
     }
 
@@ -66,37 +70,48 @@ public class SpawnerDropListener implements Listener {
         Random random = ThreadLocalRandom.current();
 
         switch (type) {
-            case ZOMBIE -> add(drops, Material.ROTTEN_FLESH, 1 + random.nextInt(3));
-            case SKELETON -> {
+            case ZOMBIE:
+                add(drops, Material.ROTTEN_FLESH, 1 + random.nextInt(3));
+                break;
+            case SKELETON:
                 add(drops, Material.BONE, 1 + random.nextInt(3));
                 add(drops, Material.ARROW, 1 + random.nextInt(3));
-            }
-            case SPIDER -> {
+                break;
+            case SPIDER:
                 add(drops, Material.STRING, 1 + random.nextInt(3));
                 if (random.nextDouble() < 0.5) add(drops, Material.SPIDER_EYE, 1);
-            }
-            case CAVE_SPIDER -> {
+                break;
+            case CAVE_SPIDER:
                 add(drops, Material.STRING, 1 + random.nextInt(2));
                 if (random.nextDouble() < 0.7) add(drops, Material.SPIDER_EYE, 1);
-            }
-            case SLIME -> add(drops, Material.SLIME_BALL, 1 + random.nextInt(3));
-            case BLAZE -> add(drops, Material.BLAZE_ROD, 1 + random.nextInt(2));
-            case MAGMA_CUBE -> add(drops, Material.MAGMA_CREAM, 1 + random.nextInt(2));
-            case CREEPER -> add(drops, Material.GUNPOWDER, 1 + random.nextInt(3));
-            case ENDERMAN -> {
+                break;
+            case SLIME:
+                add(drops, Material.SLIME_BALL, 1 + random.nextInt(3));
+                break;
+            case BLAZE:
+                add(drops, Material.BLAZE_ROD, 1 + random.nextInt(2));
+                break;
+            case MAGMA_CUBE:
+                add(drops, Material.MAGMA_CREAM, 1 + random.nextInt(2));
+                break;
+            case CREEPER:
+                add(drops, Material.GUNPOWDER, 1 + random.nextInt(3));
+                break;
+            case ENDERMAN:
                 if (random.nextDouble() < 0.7) add(drops, Material.ENDER_PEARL, 1);
-            }
-            case WITCH -> {
+                break;
+            case WITCH:
                 if (random.nextDouble() < 0.5) add(drops, Material.GLOWSTONE_DUST, 1 + random.nextInt(3));
                 if (random.nextDouble() < 0.5) add(drops, Material.GUNPOWDER, 1 + random.nextInt(2));
                 if (random.nextDouble() < 0.3) add(drops, Material.SPIDER_EYE, 1);
                 if (random.nextDouble() < 0.3) add(drops, Material.GLASS_BOTTLE, 1 + random.nextInt(2));
-            }
-            case RABBIT -> {
+                break;
+            case RABBIT:
                 add(drops, Material.RABBIT_HIDE, 1);
                 if (random.nextDouble() < 0.1) add(drops, Material.RABBIT_FOOT, 1);
-            }
-            default -> {}
+                break;
+            default:
+                break;
         }
 
         return drops;
@@ -131,28 +146,31 @@ public class SpawnerDropListener implements Listener {
     }
 
     private String getItemColor(Material material) {
-        return switch (material) {
-            case ROTTEN_FLESH -> ChatColor.DARK_GREEN.toString();
-            case BONE, ARROW, FEATHER, STRING -> ChatColor.WHITE.toString();
-            case SPIDER_EYE -> ChatColor.DARK_RED.toString();
-            case GUNPOWDER -> ChatColor.GRAY.toString();
-            case SLIME_BALL -> ChatColor.GREEN.toString();
-            case MAGMA_CREAM -> ChatColor.GOLD.toString();
-            case BLAZE_ROD, BLAZE_POWDER -> ChatColor.GOLD.toString();
-            case GHAST_TEAR -> ChatColor.LIGHT_PURPLE.toString();
-            case PHANTOM_MEMBRANE -> ChatColor.AQUA.toString();
-            case INK_SAC -> ChatColor.DARK_GRAY.toString();
-            case GLOW_INK_SAC -> ChatColor.AQUA.toString();
-            case PRISMARINE_SHARD, PRISMARINE_CRYSTALS -> ChatColor.AQUA.toString();
-            case RABBIT_HIDE -> ChatColor.YELLOW.toString();
-            case RABBIT_FOOT -> ChatColor.LIGHT_PURPLE.toString();
-            case TURTLE_SCUTE, ARMADILLO_SCUTE -> ChatColor.GREEN.toString();
-            case ENDER_PEARL -> ChatColor.LIGHT_PURPLE.toString();
-            case EXPERIENCE_BOTTLE -> ChatColor.GREEN.toString();
-            case GLOWSTONE_DUST -> ChatColor.YELLOW.toString();
-            case GLASS_BOTTLE -> ChatColor.WHITE.toString();
-            default -> ChatColor.WHITE.toString();
-        };
+        if (material == Material.ROTTEN_FLESH) return ChatColor.DARK_GREEN.toString();
+        if (material == Material.BONE) return ChatColor.WHITE.toString();
+        if (material == Material.ARROW) return ChatColor.WHITE.toString();
+        if (material == Material.FEATHER) return ChatColor.WHITE.toString();
+        if (material == Material.STRING) return ChatColor.WHITE.toString();
+        if (material == Material.SPIDER_EYE) return ChatColor.DARK_RED.toString();
+        if (material == Material.GUNPOWDER) return ChatColor.GRAY.toString();
+        if (material == Material.SLIME_BALL) return ChatColor.GREEN.toString();
+        if (material == Material.MAGMA_CREAM) return ChatColor.GOLD.toString();
+        if (material == Material.BLAZE_ROD) return ChatColor.GOLD.toString();
+        if (material == Material.BLAZE_POWDER) return ChatColor.GOLD.toString();
+        if (material == Material.GHAST_TEAR) return ChatColor.LIGHT_PURPLE.toString();
+        if (material == Material.PHANTOM_MEMBRANE) return ChatColor.AQUA.toString();
+        if (material == Material.INK_SAC) return ChatColor.DARK_GRAY.toString();
+        if (material == Material.GLOW_INK_SAC) return ChatColor.AQUA.toString();
+        if (material == Material.PRISMARINE_SHARD) return ChatColor.AQUA.toString();
+        if (material == Material.PRISMARINE_CRYSTALS) return ChatColor.AQUA.toString();
+        if (material == Material.RABBIT_HIDE) return ChatColor.YELLOW.toString();
+        if (material == Material.RABBIT_FOOT) return ChatColor.LIGHT_PURPLE.toString();
+        if (material == Material.SCUTE) return ChatColor.GREEN.toString();
+        if (material == Material.ENDER_PEARL) return ChatColor.LIGHT_PURPLE.toString();
+        if (material == Material.EXPERIENCE_BOTTLE) return ChatColor.GREEN.toString();
+        if (material == Material.GLOWSTONE_DUST) return ChatColor.YELLOW.toString();
+        if (material == Material.GLASS_BOTTLE) return ChatColor.WHITE.toString();
+        return ChatColor.WHITE.toString();
     }
 
     private String formatName(Material material) {
