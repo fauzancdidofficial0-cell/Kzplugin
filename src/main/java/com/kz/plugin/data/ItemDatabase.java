@@ -1,6 +1,3 @@
-.toString().trim();
-    }
-}
 package com.kz.plugin.data;
 
 import org.bukkit.Material;
@@ -46,7 +43,7 @@ public class ItemDatabase {
     }
 
     private void loadCategories() {
-
+        
         // ══════════════════════════════════════
         //  CATEGORY 1: COMBAT
         // ══════════════════════════════════════
