@@ -1,6 +1,3 @@
-lue != null ? value : 0;
-    }
-}
 package com.kz.plugin.listeners;
 
 import com.kz.plugin.systems.SpawnerPriceRegistry;
