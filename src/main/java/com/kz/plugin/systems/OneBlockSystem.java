@@ -116,7 +116,7 @@ public class OneBlockSystem {
                 Material.CLAY, Material.FROSTED_ICE
             ),
             Arrays.asList(
-                EntityType.STRAY, EntityType.POLAR_BEAR, EntityType.SNOWMAN,
+                EntityType.STRAY, EntityType.POLAR_BEAR, EntityType.SNOW_GOLEM,
                 EntityType.RABBIT, EntityType.WOLF
             ),
             18
