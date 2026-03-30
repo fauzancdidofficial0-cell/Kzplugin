@@ -1,3 +1,6 @@
+.toString().trim();
+    }
+}
 package com.kz.plugin.data;
 
 import org.bukkit.Material;
@@ -135,7 +138,6 @@ public class ItemDatabase {
 
         // Special Armor
         combat.items.add(new ShopItem(Material.TURTLE_HELMET, 30000, 3000, "combat"));
-        combat.items.add(new ShopItem(Material.WOLF_ARMOR, 15000, 1500, "combat"));
 
         categories.put("combat", combat);
 
@@ -312,8 +314,7 @@ public class ItemDatabase {
         resources.items.add(new ShopItem(Material.ROTTEN_FLESH, 50, 5, "resources"));
         resources.items.add(new ShopItem(Material.SPIDER_EYE, 200, 20, "resources"));
         resources.items.add(new ShopItem(Material.ENDER_EYE, 5000, 500, "resources"));
-        resources.items.add(new ShopItem(Material.TURTLE_SCUTE, 2000, 200, "resources"));
-        resources.items.add(new ShopItem(Material.ARMADILLO_SCUTE, 1500, 150, "resources"));
+        resources.items.add(new ShopItem(Material.SCUTE, 2000, 200, "resources"));
         resources.items.add(new ShopItem(Material.PHANTOM_MEMBRANE, 2000, 200, "resources"));
         resources.items.add(new ShopItem(Material.RABBIT_FOOT, 1000, 100, "resources"));
 
@@ -452,7 +453,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.DARK_OAK_LEAVES, 50, 5, "natural"));
         natural.items.add(new ShopItem(Material.MANGROVE_LEAVES, 75, 7, "natural"));
         natural.items.add(new ShopItem(Material.CHERRY_LEAVES, 100, 10, "natural"));
-        natural.items.add(new ShopItem(Material.PALE_OAK_LEAVES, 100, 10, "natural"));
 
         // Logs
         natural.items.add(new ShopItem(Material.OAK_LOG, 150, 15, "natural"));
@@ -463,7 +463,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.DARK_OAK_LOG, 200, 20, "natural"));
         natural.items.add(new ShopItem(Material.MANGROVE_LOG, 250, 25, "natural"));
         natural.items.add(new ShopItem(Material.CHERRY_LOG, 300, 30, "natural"));
-        natural.items.add(new ShopItem(Material.PALE_OAK_LOG, 300, 30, "natural"));
 
         // Wood
         natural.items.add(new ShopItem(Material.OAK_WOOD, 200, 20, "natural"));
@@ -474,7 +473,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.DARK_OAK_WOOD, 250, 25, "natural"));
         natural.items.add(new ShopItem(Material.MANGROVE_WOOD, 300, 30, "natural"));
         natural.items.add(new ShopItem(Material.CHERRY_WOOD, 350, 35, "natural"));
-        natural.items.add(new ShopItem(Material.PALE_OAK_WOOD, 350, 35, "natural"));
 
         // Stripped Logs
         natural.items.add(new ShopItem(Material.STRIPPED_OAK_LOG, 200, 20, "natural"));
@@ -485,7 +483,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.STRIPPED_DARK_OAK_LOG, 250, 25, "natural"));
         natural.items.add(new ShopItem(Material.STRIPPED_MANGROVE_LOG, 300, 30, "natural"));
         natural.items.add(new ShopItem(Material.STRIPPED_CHERRY_LOG, 350, 35, "natural"));
-        natural.items.add(new ShopItem(Material.STRIPPED_PALE_OAK_LOG, 350, 35, "natural"));
 
         // Stripped Wood
         natural.items.add(new ShopItem(Material.STRIPPED_OAK_WOOD, 250, 25, "natural"));
@@ -496,7 +493,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.STRIPPED_DARK_OAK_WOOD, 300, 30, "natural"));
         natural.items.add(new ShopItem(Material.STRIPPED_MANGROVE_WOOD, 350, 35, "natural"));
         natural.items.add(new ShopItem(Material.STRIPPED_CHERRY_WOOD, 400, 40, "natural"));
-        natural.items.add(new ShopItem(Material.STRIPPED_PALE_OAK_WOOD, 400, 40, "natural"));
 
         // Nether Stems
         natural.items.add(new ShopItem(Material.CRIMSON_STEM, 500, 50, "natural"));
@@ -557,7 +553,6 @@ public class ItemDatabase {
         natural.items.add(new ShopItem(Material.DARK_OAK_SAPLING, 400, 40, "natural"));
         natural.items.add(new ShopItem(Material.MANGROVE_PROPAGULE, 500, 50, "natural"));
         natural.items.add(new ShopItem(Material.CHERRY_SAPLING, 750, 75, "natural"));
-        natural.items.add(new ShopItem(Material.PALE_OAK_SAPLING, 750, 75, "natural"));
 
         // Crops & Plants
         natural.items.add(new ShopItem(Material.PUMPKIN, 300, 30, "natural"));
@@ -947,7 +942,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.MANGROVE_BOAT, 1800, 180, "misc"));
         misc.items.add(new ShopItem(Material.CHERRY_BOAT, 2000, 200, "misc"));
         misc.items.add(new ShopItem(Material.BAMBOO_RAFT, 1500, 150, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_BOAT, 2000, 200, "misc"));
 
         // Chest Boats
         misc.items.add(new ShopItem(Material.OAK_CHEST_BOAT, 1800, 180, "misc"));
@@ -959,7 +953,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.MANGROVE_CHEST_BOAT, 2500, 250, "misc"));
         misc.items.add(new ShopItem(Material.CHERRY_CHEST_BOAT, 2800, 280, "misc"));
         misc.items.add(new ShopItem(Material.BAMBOO_CHEST_RAFT, 2000, 200, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_CHEST_BOAT, 2800, 280, "misc"));
 
         // Minecarts
         misc.items.add(new ShopItem(Material.MINECART, 3500, 350, "misc"));
@@ -1133,7 +1126,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_SIGN, 500, 50, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_SIGN, 600, 60, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_SIGN, 600, 60, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_SIGN, 600, 60, "misc"));
 
         // Hanging Signs
         misc.items.add(new ShopItem(Material.OAK_HANGING_SIGN, 600, 60, "misc"));
@@ -1147,7 +1139,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_HANGING_SIGN, 700, 70, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_HANGING_SIGN, 800, 80, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_HANGING_SIGN, 800, 80, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_HANGING_SIGN, 800, 80, "misc"));
 
         // Doors & Trapdoors
         misc.items.add(new ShopItem(Material.OAK_DOOR, 600, 60, "misc"));
@@ -1161,7 +1152,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_DOOR, 800, 80, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_DOOR, 900, 90, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_DOOR, 900, 90, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_DOOR, 900, 90, "misc"));
         misc.items.add(new ShopItem(Material.OAK_TRAPDOOR, 500, 50, "misc"));
         misc.items.add(new ShopItem(Material.SPRUCE_TRAPDOOR, 500, 50, "misc"));
         misc.items.add(new ShopItem(Material.BIRCH_TRAPDOOR, 500, 50, "misc"));
@@ -1173,7 +1163,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_TRAPDOOR, 700, 70, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_TRAPDOOR, 800, 80, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_TRAPDOOR, 800, 80, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_TRAPDOOR, 800, 80, "misc"));
 
         // Fences & Gates
         misc.items.add(new ShopItem(Material.OAK_FENCE, 250, 25, "misc"));
@@ -1188,7 +1177,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.CRIMSON_FENCE, 400, 40, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_FENCE, 400, 40, "misc"));
         misc.items.add(new ShopItem(Material.NETHER_BRICK_FENCE, 500, 50, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_FENCE, 400, 40, "misc"));
         misc.items.add(new ShopItem(Material.OAK_FENCE_GATE, 350, 35, "misc"));
         misc.items.add(new ShopItem(Material.SPRUCE_FENCE_GATE, 350, 35, "misc"));
         misc.items.add(new ShopItem(Material.BIRCH_FENCE_GATE, 350, 35, "misc"));
@@ -1200,7 +1188,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_FENCE_GATE, 450, 45, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_FENCE_GATE, 500, 50, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_FENCE_GATE, 500, 50, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_FENCE_GATE, 500, 50, "misc"));
 
         // Planks
         misc.items.add(new ShopItem(Material.OAK_PLANKS, 75, 7, "misc"));
@@ -1214,7 +1201,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_PLANKS, 125, 12, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_PLANKS, 200, 20, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_PLANKS, 200, 20, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_PLANKS, 150, 15, "misc"));
 
         // Wood Stairs & Slabs
         misc.items.add(new ShopItem(Material.OAK_STAIRS, 125, 12, "misc"));
@@ -1229,7 +1215,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_MOSAIC_STAIRS, 200, 20, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_STAIRS, 250, 25, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_STAIRS, 250, 25, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_STAIRS, 200, 20, "misc"));
         misc.items.add(new ShopItem(Material.OAK_SLAB, 60, 6, "misc"));
         misc.items.add(new ShopItem(Material.SPRUCE_SLAB, 60, 6, "misc"));
         misc.items.add(new ShopItem(Material.BIRCH_SLAB, 60, 6, "misc"));
@@ -1242,7 +1227,6 @@ public class ItemDatabase {
         misc.items.add(new ShopItem(Material.BAMBOO_MOSAIC_SLAB, 125, 12, "misc"));
         misc.items.add(new ShopItem(Material.CRIMSON_SLAB, 150, 15, "misc"));
         misc.items.add(new ShopItem(Material.WARPED_SLAB, 150, 15, "misc"));
-        misc.items.add(new ShopItem(Material.PALE_OAK_SLAB, 125, 12, "misc"));
 
         categories.put("misc", misc);
 
