@@ -27,7 +27,7 @@ public final class SpawnerPriceRegistry {
         SPAWNER_SELL_PRICES.put(Material.PRISMARINE_CRYSTALS, 38);
         SPAWNER_SELL_PRICES.put(Material.RABBIT_HIDE, 15);
         SPAWNER_SELL_PRICES.put(Material.RABBIT_FOOT, 75);
-        SPAWNER_SELL_PRICES.put(Material.SCUTE, 150);
+        SPAWNER_SELL_PRICES.put(Material.TURTLE_SCUTE, 150);
         SPAWNER_SELL_PRICES.put(Material.ENDER_PEARL, 600);
         SPAWNER_SELL_PRICES.put(Material.EXPERIENCE_BOTTLE, 100);
     }
