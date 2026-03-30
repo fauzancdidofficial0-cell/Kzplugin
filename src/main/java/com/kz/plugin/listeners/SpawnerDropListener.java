@@ -162,7 +162,7 @@ public class SpawnerDropListener implements Listener {
         if (material == Material.PRISMARINE_CRYSTALS) return ChatColor.AQUA.toString();
         if (material == Material.RABBIT_HIDE) return ChatColor.YELLOW.toString();
         if (material == Material.RABBIT_FOOT) return ChatColor.LIGHT_PURPLE.toString();
-        if (material == Material.SCUTE) return ChatColor.GREEN.toString();
+        if (material == Material.TURTLE_SCUTE) return ChatColor.GREEN.toString();
         if (material == Material.ENDER_PEARL) return ChatColor.LIGHT_PURPLE.toString();
         if (material == Material.EXPERIENCE_BOTTLE) return ChatColor.GREEN.toString();
         if (material == Material.GLOWSTONE_DUST) return ChatColor.YELLOW.toString();
