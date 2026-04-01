@@ -20,6 +20,7 @@ public class KZPlugin extends JavaPlugin {
     private ItemDatabase itemDatabase;
     private DailyRewardSystem dailyRewardSystem;
     private WeeklyRewardSystem weeklyRewardSystem;
+    private SpawnerItemFactory spawnerItemFactory; // ✅ TAMBAH INI
 
     @Override
     public void onEnable() {
@@ -43,6 +44,7 @@ public class KZPlugin extends JavaPlugin {
         lobbySystem = new LobbySystem(this);
         dailyRewardSystem = new DailyRewardSystem(this);
         weeklyRewardSystem = new WeeklyRewardSystem(this);
+        spawnerItemFactory = new SpawnerItemFactory(this); // ✅ TAMBAH INI
 
         // ══════════════════════════════════
         //  Register Commands
@@ -177,6 +179,10 @@ public class KZPlugin extends JavaPlugin {
             new BlockEventListener(this), this);
         getServer().getPluginManager().registerEvents(
             new EntityEventListener(this), this);
+        getServer().getPluginManager().registerEvents(    // ✅ TAMBAH INI
+            new SpawnerPlaceListener(this), this);        // ✅ TAMBAH INI
+        getServer().getPluginManager().registerEvents(    // ✅ TAMBAH INI
+            new SpawnerDropListener(this), this);         // ✅ TAMBAH INI
     }
 
     private void startTasks() {
@@ -239,47 +245,16 @@ public class KZPlugin extends JavaPlugin {
     //  Getters
     // ══════════════════════════════════
 
-    public static KZPlugin getInstance() {
-        return instance;
-    }
-
-    public EconomyManager getEconomyManager() {
-        return economyManager;
-    }
-
-    public IslandSystem getIslandSystem() {
-        return islandSystem;
-    }
-
-    public OneBlockSystem getOneBlockSystem() {
-        return oneBlockSystem;
-    }
-
-    public LandSystem getLandSystem() {
-        return landSystem;
-    }
-
-    public JobSystem getJobSystem() {
-        return jobSystem;
-    }
-
-    public TPASystem getTpaSystem() {
-        return tpaSystem;
-    }
-
-    public LobbySystem getLobbySystem() {
-        return lobbySystem;
-    }
-
-    public ItemDatabase getItemDatabase() {
-        return itemDatabase;
-    }
-
-    public DailyRewardSystem getDailyRewardSystem() {
-        return dailyRewardSystem;
-    }
-
-    public WeeklyRewardSystem getWeeklyRewardSystem() {
-        return weeklyRewardSystem;
-    }
+    public static KZPlugin getInstance() { return instance; }
+    public EconomyManager getEconomyManager() { return economyManager; }
+    public IslandSystem getIslandSystem() { return islandSystem; }
+    public OneBlockSystem getOneBlockSystem() { return oneBlockSystem; }
+    public LandSystem getLandSystem() { return landSystem; }
+    public JobSystem getJobSystem() { return jobSystem; }
+    public TPASystem getTpaSystem() { return tpaSystem; }
+    public LobbySystem getLobbySystem() { return lobbySystem; }
+    public ItemDatabase getItemDatabase() { return itemDatabase; }
+    public DailyRewardSystem getDailyRewardSystem() { return dailyRewardSystem; }
+    public WeeklyRewardSystem getWeeklyRewardSystem() { return weeklyRewardSystem; }
+    public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; } // ✅ TAMBAH INI
 }
