@@ -2,10 +2,12 @@ package com.kz.plugin.commands;
 
 import com.kz.plugin.KZPlugin;
 import com.kz.plugin.data.ItemDatabase;
+import com.kz.plugin.systems.SpawnerItemFactory;
 import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.*;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
@@ -21,7 +23,6 @@ public class ShopCommand implements CommandExecutor {
         37,38,39,40,41,42,43
     };
 
-    // Player session
     private static final Map<UUID, String> playerCategory = new HashMap<>();
     private static final Map<UUID, Integer> playerPage = new HashMap<>();
     private static final Map<UUID, Integer> buyItemIndex = new HashMap<>();
@@ -38,7 +39,6 @@ public class ShopCommand implements CommandExecutor {
             sender.sendMessage("§cThis command is for players only.");
             return true;
         }
-
         Player player = (Player) sender;
         openMainMenu(player);
         player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 1f, 1f);
@@ -46,7 +46,7 @@ public class ShopCommand implements CommandExecutor {
     }
 
     // ══════════════════════════════════════
-    //  MAIN MENU (Layer 1)
+    //  MAIN MENU
     // ══════════════════════════════════════
 
     public void openMainMenu(Player player) {
@@ -61,7 +61,6 @@ public class ShopCommand implements CommandExecutor {
 
         for (ItemDatabase.Category cat : cats.values()) {
             if (i >= catSlots.length) break;
-
             ItemStack item = createItem(cat.icon, cat.name,
                 "§7" + cat.items.size() + " items available",
                 "",
@@ -70,7 +69,6 @@ public class ShopCommand implements CommandExecutor {
             i++;
         }
 
-        // Balance display
         double bal = plugin.getEconomyManager().getBalance(player);
         String mode = plugin.getEconomyManager().getPlayerMode(player);
         ItemStack balItem = createItem(Material.NETHER_STAR,
@@ -82,7 +80,7 @@ public class ShopCommand implements CommandExecutor {
     }
 
     // ══════════════════════════════════════
-    //  CATEGORY PAGE (Layer 2)
+    //  CATEGORY PAGE
     // ══════════════════════════════════════
 
     public void openCategory(Player player, String categoryId, int page) {
@@ -102,28 +100,55 @@ public class ShopCommand implements CommandExecutor {
         ItemStack glass = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 54; i++) inv.setItem(i, glass);
 
-        // Items
         int startIndex = (page - 1) * ITEMS_PER_PAGE;
+
         for (int i = 0; i < ITEM_SLOTS.length && (startIndex + i) < totalItems; i++) {
             ItemDatabase.ShopItem shopItem = category.items.get(startIndex + i);
+            ItemStack displayItem;
 
-            ItemStack item = createItem(shopItem.material,
-                category.color + "§l" + plugin.getItemDatabase().formatItemName(shopItem.material),
-                "§7━━━━━━━━━━━━━━━━",
-                "§7Buy Price  : §a$" + shopItem.buyPrice,
-                "§7Sell Price : §e$" + shopItem.sellPrice,
-                "§7━━━━━━━━━━━━━━━━",
-                "",
-                "§aClick to select quantity.");
-            inv.setItem(ITEM_SLOTS[i], item);
+            // ✅ CEK SPAWNER ITEM
+            if (shopItem instanceof ItemDatabase.SpawnerShopItem) {
+                ItemDatabase.SpawnerShopItem spawnerShopItem =
+                    (ItemDatabase.SpawnerShopItem) shopItem;
+
+                // Pakai SpawnerItemFactory
+                displayItem = plugin.getSpawnerItemFactory()
+                    .createSpawner(spawnerShopItem.entityType);
+
+                // Update lore dengan harga
+                ItemMeta meta = displayItem.getItemMeta();
+                if (meta != null) {
+                    meta.setLore(Arrays.asList(
+                        "§7━━━━━━━━━━━━━━━━",
+                        "§7Buy Price  : §a$" + String.format("%,d", spawnerShopItem.buyPrice),
+                        "§7Sell Price : §cCannot sell",
+                        "§7━━━━━━━━━━━━━━━━",
+                        "",
+                        "§aClick to purchase!"
+                    ));
+                    displayItem.setItemMeta(meta);
+                }
+            } else {
+                // ✅ Item biasa
+                displayItem = createItem(
+                    shopItem.material,
+                    category.color + "§l" + plugin.getItemDatabase()
+                        .formatItemName(shopItem.material),
+                    "§7━━━━━━━━━━━━━━━━",
+                    "§7Buy Price  : §a$" + shopItem.buyPrice,
+                    "§7Sell Price : §e$" + shopItem.sellPrice,
+                    "§7━━━━━━━━━━━━━━━━",
+                    "",
+                    "§aClick to select quantity."
+                );
+            }
+
+            inv.setItem(ITEM_SLOTS[i], displayItem);
         }
 
         // Navigation
         inv.setItem(45, createItem(Material.ARROW, "§c§l← Back to Menu"));
-
-        if (page > 1) {
-            inv.setItem(48, createItem(Material.ARROW, "§e← Previous Page"));
-        }
+        if (page > 1) inv.setItem(48, createItem(Material.ARROW, "§e← Previous Page"));
 
         double bal = plugin.getEconomyManager().getBalance(player);
         inv.setItem(49, createItem(Material.NETHER_STAR,
@@ -131,15 +156,13 @@ public class ShopCommand implements CommandExecutor {
             "§7Page " + page + "/" + maxPage,
             "§7Items: " + totalItems));
 
-        if (page < maxPage) {
-            inv.setItem(50, createItem(Material.ARROW, "§a→ Next Page"));
-        }
+        if (page < maxPage) inv.setItem(50, createItem(Material.ARROW, "§a→ Next Page"));
 
         player.openInventory(inv);
     }
 
     // ══════════════════════════════════════
-    //  BUY QUANTITY GUI (Layer 3)
+    //  BUY QUANTITY GUI
     // ══════════════════════════════════════
 
     public void openBuyGUI(Player player, String categoryId, int itemIndex) {
@@ -152,25 +175,31 @@ public class ShopCommand implements CommandExecutor {
         buyItemCategory.put(player.getUniqueId(), categoryId);
         buyQuantity.put(player.getUniqueId(), 1);
 
-        String title = "§6§lPurchase: " + plugin.getItemDatabase().formatItemName(shopItem.material);
+        // ✅ Nama title yang benar untuk spawner
+        String itemName;
+        if (shopItem instanceof ItemDatabase.SpawnerShopItem) {
+            ItemDatabase.SpawnerShopItem spawnerShopItem =
+                (ItemDatabase.SpawnerShopItem) shopItem;
+            itemName = formatEntityName(spawnerShopItem.entityType) + " Spawner";
+        } else {
+            itemName = plugin.getItemDatabase().formatItemName(shopItem.material);
+        }
+
+        String title = "§6§lPurchase: " + itemName;
         Inventory inv = Bukkit.createInventory(null, 27, title);
 
         ItemStack glass = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 27; i++) inv.setItem(i, glass);
 
-        // Quantity buttons
         inv.setItem(1, createItem(Material.LIME_STAINED_GLASS_PANE, "§a§l+1"));
         inv.setItem(2, createItem(Material.GREEN_STAINED_GLASS_PANE, "§a§l+16"));
         inv.setItem(3, createItem(Material.GREEN_STAINED_GLASS_PANE, "§a§l+64"));
-
         inv.setItem(5, createItem(Material.RED_STAINED_GLASS_PANE, "§c§l-64"));
         inv.setItem(6, createItem(Material.RED_STAINED_GLASS_PANE, "§c§l-16"));
         inv.setItem(7, createItem(Material.RED_STAINED_GLASS_PANE, "§c§l-1"));
 
-        // Display
         refreshBuyDisplay(inv, player, category, shopItem, 1);
 
-        // Buttons
         inv.setItem(18, createItem(Material.ARROW, "§c§l← Back"));
         inv.setItem(22, createItem(Material.EMERALD, "§a§lCONFIRM PURCHASE",
             "§7Total: §a$" + shopItem.buyPrice));
@@ -185,22 +214,53 @@ public class ShopCommand implements CommandExecutor {
         int totalPrice = shopItem.buyPrice * qty;
         boolean canAfford = balance >= totalPrice;
 
-        ItemStack display = new ItemStack(shopItem.material, Math.min(qty, 64));
-        ItemMeta meta = display.getItemMeta();
-        meta.setDisplayName(category.color + "§l" + plugin.getItemDatabase().formatItemName(shopItem.material));
-        meta.setLore(Arrays.asList(
-            "§7━━━━━━━━━━━━━━━━",
-            "§7Quantity  : §f" + qty,
-            "§7Price/ea  : §a$" + shopItem.buyPrice,
-            "§7Total     : §a$" + totalPrice,
-            "§7Balance   : " + (canAfford ? "§a" : "§c") + plugin.getEconomyManager().formatBalance(balance),
-            "§7━━━━━━━━━━━━━━━━",
-            canAfford ? "§aYou can afford this." : "§cInsufficient balance."
-        ));
-        display.setItemMeta(meta);
-        inv.setItem(4, display);
+        ItemStack display;
 
-        // Update confirm button
+        // ✅ Display spawner dengan nama yang benar
+        if (shopItem instanceof ItemDatabase.SpawnerShopItem) {
+            ItemDatabase.SpawnerShopItem spawnerShopItem =
+                (ItemDatabase.SpawnerShopItem) shopItem;
+
+            display = plugin.getSpawnerItemFactory()
+                .createSpawner(spawnerShopItem.entityType);
+            display.setAmount(Math.min(qty, 64));
+
+            ItemMeta meta = display.getItemMeta();
+            if (meta != null) {
+                meta.setLore(Arrays.asList(
+                    "§7━━━━━━━━━━━━━━━━",
+                    "§7Quantity  : §f" + qty,
+                    "§7Price/ea  : §a$" + String.format("%,d", shopItem.buyPrice),
+                    "§7Total     : §a$" + String.format("%,d", totalPrice),
+                    "§7Balance   : " + (canAfford ? "§a" : "§c") +
+                        plugin.getEconomyManager().formatBalance(balance),
+                    "§7━━━━━━━━━━━━━━━━",
+                    canAfford ? "§aYou can afford this." : "§cInsufficient balance."
+                ));
+                display.setItemMeta(meta);
+            }
+        } else {
+            // ✅ Item biasa
+            display = new ItemStack(shopItem.material, Math.min(qty, 64));
+            ItemMeta meta = display.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(category.color + "§l" +
+                    plugin.getItemDatabase().formatItemName(shopItem.material));
+                meta.setLore(Arrays.asList(
+                    "§7━━━━━━━━━━━━━━━━",
+                    "§7Quantity  : §f" + qty,
+                    "§7Price/ea  : §a$" + shopItem.buyPrice,
+                    "§7Total     : §a$" + totalPrice,
+                    "§7Balance   : " + (canAfford ? "§a" : "§c") +
+                        plugin.getEconomyManager().formatBalance(balance),
+                    "§7━━━━━━━━━━━━━━━━",
+                    canAfford ? "§aYou can afford this." : "§cInsufficient balance."
+                ));
+                display.setItemMeta(meta);
+            }
+        }
+
+        inv.setItem(4, display);
         inv.setItem(22, createItem(
             canAfford ? Material.EMERALD : Material.BARRIER,
             canAfford ? "§a§lCONFIRM PURCHASE" : "§c§lINSUFFICIENT BALANCE",
@@ -231,15 +291,40 @@ public class ShopCommand implements CommandExecutor {
             return;
         }
 
-        player.getInventory().addItem(new ItemStack(shopItem.material, qty));
+        String itemName;
+        ItemStack itemToBuy;
+
+        // ✅ SPAWNER: Buat dengan SpawnerItemFactory
+        if (shopItem instanceof ItemDatabase.SpawnerShopItem) {
+            ItemDatabase.SpawnerShopItem spawnerShopItem =
+                (ItemDatabase.SpawnerShopItem) shopItem;
+
+            itemName = formatEntityName(spawnerShopItem.entityType) + " Spawner";
+
+            // Buat qty spawner (satu-satu karena NBT)
+            for (int i = 0; i < qty; i++) {
+                ItemStack spawner = plugin.getSpawnerItemFactory()
+                    .createSpawner(spawnerShopItem.entityType);
+                player.getInventory().addItem(spawner);
+            }
+            itemToBuy = null; // Sudah di-add di atas
+
+        } else {
+            // ✅ Item biasa
+            itemName = plugin.getItemDatabase().formatItemName(shopItem.material);
+            itemToBuy = new ItemStack(shopItem.material, qty);
+            player.getInventory().addItem(itemToBuy);
+        }
+
         player.closeInventory();
 
+        // ✅ Success message
         player.sendMessage("");
         player.sendMessage("§a§l━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         player.sendMessage("§f§l  PURCHASE SUCCESSFUL");
         player.sendMessage("§a§l━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        player.sendMessage("§7  Item    : §f" + plugin.getItemDatabase().formatItemName(shopItem.material) + " x" + qty);
-        player.sendMessage("§7  Cost    : §c-$" + totalPrice);
+        player.sendMessage("§7  Item    : §f" + itemName + " §7x" + qty);
+        player.sendMessage("§7  Cost    : §c-$" + String.format("%,d", totalPrice));
         player.sendMessage("§7  Balance : §a" + plugin.getEconomyManager().formatBalance(
             plugin.getEconomyManager().getBalance(uuid)));
         player.sendMessage("§a§l━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -254,7 +339,7 @@ public class ShopCommand implements CommandExecutor {
     }
 
     // ══════════════════════════════════════
-    //  STATIC GETTERS (for GUIListener)
+    //  STATIC GETTERS
     // ══════════════════════════════════════
 
     public static String getPlayerCategory(UUID uuid) { return playerCategory.get(uuid); }
@@ -287,9 +372,23 @@ public class ShopCommand implements CommandExecutor {
     private ItemStack createItem(Material mat, String name, String... lore) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
         meta.setDisplayName(name);
         if (lore.length > 0) meta.setLore(Arrays.asList(lore));
         item.setItemMeta(meta);
         return item;
+    }
+
+    // ✅ Format EntityType name
+    private String formatEntityName(org.bukkit.entity.EntityType type) {
+        String[] parts = type.name().split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            builder.append(part.substring(0, 1).toUpperCase())
+                   .append(part.substring(1).toLowerCase())
+                   .append(" ");
+        }
+        return builder.toString().trim();
     }
 }
