@@ -2,6 +2,7 @@ package com.kz.plugin.data;
 
 import org.bukkit.Material;
 import java.util.*;
+import org.bukkit.entity.EntityType;
 
 public class ItemDatabase {
 
@@ -31,8 +32,19 @@ public class ItemDatabase {
             this.name = name;
             this.color = color;
             this.icon = icon;
+ 
         }
     }
+
+     // Tambah SETELAH class Category
+    public static class SpawnerShopItem extends ShopItem {
+    public final EntityType entityType;
+
+    public SpawnerShopItem(EntityType entityType, int buyPrice) {
+        super(Material.SPAWNER, buyPrice, 0, "spawners");
+        this.entityType = entityType;
+         }
+      }
 
     private final Map<String, Category> categories = new LinkedHashMap<>();
     private final Map<Material, Integer> sellPrices = new HashMap<>();
@@ -1259,23 +1271,20 @@ public class ItemDatabase {
 
         categories.put("exclusive", exclusive);
 
-                // ══════════════════════════════════════
-        //  CATEGORY 8: SPAWNERS
-        // ══════════════════════════════════════
-        Category spawners = new Category("spawners", "§4§lSpawners", "§4", Material.SPAWNER);
+       Category spawners = new Category("spawners", "§4§lSpawners", "§4", Material.SPAWNER);
 
-        spawners.items.add(new ShopItem(Material.SPAWNER, 150000, 0, "spawners")); // Skeleton
-        spawners.items.add(new ShopItem(Material.SPAWNER, 300000, 0, "spawners")); // Zombie
-        spawners.items.add(new ShopItem(Material.SPAWNER, 250000, 0, "spawners")); // Spider
-        spawners.items.add(new ShopItem(Material.SPAWNER, 350000, 0, "spawners")); // Cave Spider
-        spawners.items.add(new ShopItem(Material.SPAWNER, 650000, 0, "spawners")); // Slime
-        spawners.items.add(new ShopItem(Material.SPAWNER, 900000, 0, "spawners")); // Blaze
-        spawners.items.add(new ShopItem(Material.SPAWNER, 1000000, 0, "spawners")); // Magma Cube
-        spawners.items.add(new ShopItem(Material.SPAWNER, 1250000, 0, "spawners")); // Creeper
-        spawners.items.add(new ShopItem(Material.SPAWNER, 4000000, 0, "spawners")); // Enderman
-        spawners.items.add(new ShopItem(Material.SPAWNER, 2500000, 0, "spawners")); // Witch
+       spawners.items.add(new SpawnerShopItem(EntityType.SKELETON,    150000));
+       spawners.items.add(new SpawnerShopItem(EntityType.ZOMBIE,      300000));
+       spawners.items.add(new SpawnerShopItem(EntityType.SPIDER,      250000));
+       spawners.items.add(new SpawnerShopItem(EntityType.CAVE_SPIDER, 350000));
+       spawners.items.add(new SpawnerShopItem(EntityType.SLIME,       650000));
+       spawners.items.add(new SpawnerShopItem(EntityType.BLAZE,       900000));
+       spawners.items.add(new SpawnerShopItem(EntityType.MAGMA_CUBE,  1000000));
+       spawners.items.add(new SpawnerShopItem(EntityType.CREEPER,     1250000));
+       spawners.items.add(new SpawnerShopItem(EntityType.ENDERMAN,    4000000));
+       spawners.items.add(new SpawnerShopItem(EntityType.WITCH,       2500000));
 
-        categories.put("spawners", spawners);
+                categories.put("spawners", spawners);
 
         // ══════════════════════════════════════
         //  BUILD SELL PRICES MAP
