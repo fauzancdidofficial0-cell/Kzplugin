@@ -89,6 +89,15 @@ auction:
 coinflip:
   max-bet: 50000
 
+# ── Database (PlanetScale) ──
+database:
+  host: "ISI_HOST_PLANETSCALE"
+  port: 3306
+  name: "ISI_NAMA_DB"
+  username: "ISI_USERNAME"
+  password: "ISI_PASSWORD"
+  ssl: true
+  
 # ── Scoreboard ──
 scoreboard:
   enabled: true
