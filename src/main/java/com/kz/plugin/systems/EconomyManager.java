@@ -1,106 +1,70 @@
+// Path: src/main/java/com/kz/plugin/systems/EconomyManager.java
 package com.kz.plugin.systems;
 
 import com.kz.plugin.KZPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
+import com.kz.plugin.data.DatabaseManager;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class EconomyManager {
 
     private final KZPlugin plugin;
-    private File balanceFile;
-    private FileConfiguration balanceConfig;
+    private final DatabaseManager db;
 
-    // Per-mode balances: UUID -> (mode -> balance)
-    private final Map<UUID, Map<String, Double>> balances = new HashMap<>();
+    // Cache: UUID -> (mode -> balance)
+    // Biar ga query DB terus tiap detik
+    private final Map<UUID, Map<String, Double>> cache = new ConcurrentHashMap<>();
 
-    // Starting balance per mode
+    // Saldo awal per mode
     private final Map<String, Double> startingBalance = new HashMap<>();
 
-    public EconomyManager(KZPlugin plugin) {
+    public EconomyManager(KZPlugin plugin, DatabaseManager db) {
         this.plugin = plugin;
+        this.db = db;
 
-        // Set starting balance per mode
-        startingBalance.put("oneblock", 1000.0);
-        startingBalance.put("skyblock", 1000.0);
-        startingBalance.put("acid", 500.0);
-        startingBalance.put("island", 2000.0);
-        startingBalance.put("lobby", 0.0);
-
-        loadBalances();
+        // Baca starting balance dari config.yml
+        startingBalance.put("lobby",    plugin.getConfig().getDouble("economy.starting-balance.lobby",    0.0));
+        startingBalance.put("survival", plugin.getConfig().getDouble("economy.starting-balance.survival", 1000.0));
+        startingBalance.put("vanilla",  plugin.getConfig().getDouble("economy.starting-balance.vanilla",  1000.0));
+        startingBalance.put("oneblock", plugin.getConfig().getDouble("economy.starting-balance.oneblock", 1000.0));
+        startingBalance.put("skyblock", plugin.getConfig().getDouble("economy.starting-balance.skyblock", 1000.0));
+        startingBalance.put("island",   plugin.getConfig().getDouble("economy.starting-balance.island",   2000.0));
+        startingBalance.put("acid",     plugin.getConfig().getDouble("economy.starting-balance.acid",     500.0));
     }
 
     // ══════════════════════════════════════
-    //  SAVE & LOAD
-    // ══════════════════════════════════════
-
-    private void loadBalances() {
-        balanceFile = new File(plugin.getDataFolder(), "balances.yml");
-        if (!balanceFile.exists()) {
-            try {
-                plugin.getDataFolder().mkdirs();
-                balanceFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        balanceConfig = YamlConfiguration.loadConfiguration(balanceFile);
-
-        if (balanceConfig.contains("balances")) {
-            for (String uuidStr : balanceConfig.getConfigurationSection("balances").getKeys(false)) {
-                UUID uuid = UUID.fromString(uuidStr);
-                Map<String, Double> modeBalances = new HashMap<>();
-
-                for (String mode : balanceConfig.getConfigurationSection("balances." + uuidStr).getKeys(false)) {
-                    modeBalances.put(mode, balanceConfig.getDouble("balances." + uuidStr + "." + mode));
-                }
-
-                balances.put(uuid, modeBalances);
-            }
-        }
-    }
-
-    public void saveAll() {
-        for (Map.Entry<UUID, Map<String, Double>> entry : balances.entrySet()) {
-            for (Map.Entry<String, Double> modeEntry : entry.getValue().entrySet()) {
-                balanceConfig.set("balances." + entry.getKey().toString() + "." + modeEntry.getKey(),
-                    modeEntry.getValue());
-            }
-        }
-        try {
-            balanceConfig.save(balanceFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // ══════════════════════════════════════
-    //  GET PLAYER'S CURRENT MODE
+    //  GET MODE PLAYER
     // ══════════════════════════════════════
 
     public String getPlayerMode(UUID uuid) {
-        if (plugin.getIslandSystem() == null) return "lobby";
+        // Cek island system dulu
+        if (plugin.getIslandSystem() != null) {
+            IslandSystem.IslandData island = plugin.getIslandSystem().getIsland(uuid);
+            if (island != null && island.active) {
+                return island.mode;
+            }
 
-        IslandSystem.IslandData island = plugin.getIslandSystem().getIsland(uuid);
-        if (island != null && island.active) {
-            return island.mode;
-        }
-
-        // Check if member of someone else's island
-        UUID ownerUUID = plugin.getIslandSystem().getOwnerOf(uuid);
-        if (ownerUUID != null) {
-            IslandSystem.IslandData ownerIsland = plugin.getIslandSystem().getIsland(ownerUUID);
-            if (ownerIsland != null && ownerIsland.active) {
-                return ownerIsland.mode;
+            UUID ownerUUID = plugin.getIslandSystem().getOwnerOf(uuid);
+            if (ownerUUID != null) {
+                IslandSystem.IslandData ownerIsland = plugin.getIslandSystem().getIsland(ownerUUID);
+                if (ownerIsland != null && ownerIsland.active) {
+                    return ownerIsland.mode;
+                }
             }
         }
 
-        return "lobby";
+        // Kalau tidak ada island, cek nama server
+        String serverName = plugin.getConfig().getString("server-name", "lobby");
+        return switch (serverName) {
+            case "survival" -> "survival";
+            case "void"     -> "oneblock"; // default world pertama
+            case "custom"   -> "island";   // default world pertama
+            default         -> "lobby";
+        };
     }
 
     public String getPlayerMode(Player player) {
@@ -108,11 +72,136 @@ public class EconomyManager {
     }
 
     // ══════════════════════════════════════
-    //  BALANCE OPERATIONS (MODE-SPECIFIC)
+    //  LOAD PLAYER (saat join)
+    // ══════════════════════════════════════
+
+    public CompletableFuture<Void> loadPlayer(UUID uuid, String playerName) {
+        return CompletableFuture.runAsync(() -> {
+            // Ambil semua saldo player dari DB
+            String sql = "SELECT mode_name, balance FROM player_economy WHERE player_uuid = ?";
+
+            try (Connection conn = db.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, uuid.toString());
+                ResultSet rs = ps.executeQuery();
+
+                Map<String, Double> modeBalances = new ConcurrentHashMap<>();
+
+                while (rs.next()) {
+                    modeBalances.put(
+                        rs.getString("mode_name"),
+                        rs.getDouble("balance")
+                    );
+                }
+
+                // Kalau player baru, kasih saldo awal semua mode
+                if (modeBalances.isEmpty()) {
+                    initNewPlayer(uuid, playerName, modeBalances);
+                }
+
+                cache.put(uuid, modeBalances);
+
+            } catch (SQLException e) {
+                plugin.getLogger().severe("§cGagal load player " + playerName + ": " + e.getMessage());
+            }
+        });
+    }
+
+    // Buat akun baru dengan saldo awal semua mode
+    private void initNewPlayer(UUID uuid, String playerName, Map<String, Double> modeBalances) {
+        String sql = """
+            INSERT IGNORE INTO player_economy 
+            (player_uuid, player_name, mode_name, balance)
+            VALUES (?, ?, ?, ?)
+            """;
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            for (Map.Entry<String, Double> entry : startingBalance.entrySet()) {
+                ps.setString(1, uuid.toString());
+                ps.setString(2, playerName);
+                ps.setString(3, entry.getKey());
+                ps.setDouble(4, entry.getValue());
+                ps.addBatch();
+
+                // Masukin ke cache juga
+                modeBalances.put(entry.getKey(), entry.getValue());
+            }
+
+            ps.executeBatch();
+            plugin.getLogger().info("§aAkun baru dibuat untuk: " + playerName);
+
+        } catch (SQLException e) {
+            plugin.getLogger().severe("§cGagal init player: " + e.getMessage());
+        }
+    }
+
+    // ══════════════════════════════════════
+    //  UNLOAD PLAYER (saat logout)
+    // ══════════════════════════════════════
+
+    public CompletableFuture<Void> unloadPlayer(UUID uuid) {
+        return savePlayer(uuid).thenRun(() -> {
+            cache.remove(uuid);
+        });
+    }
+
+    // ══════════════════════════════════════
+    //  SAVE PLAYER KE DB
+    // ══════════════════════════════════════
+
+    public CompletableFuture<Void> savePlayer(UUID uuid) {
+        Map<String, Double> modeBalances = cache.get(uuid);
+        if (modeBalances == null) return CompletableFuture.completedFuture(null);
+
+        return CompletableFuture.runAsync(() -> {
+            String sql = """
+                INSERT INTO player_economy (player_uuid, player_name, mode_name, balance)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE balance = VALUES(balance)
+                """;
+
+            try (Connection conn = db.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                for (Map.Entry<String, Double> entry : modeBalances.entrySet()) {
+                    ps.setString(1, uuid.toString());
+                    ps.setString(2, "Unknown"); // Update nama kalau online
+                    ps.setString(3, entry.getKey());
+                    ps.setDouble(4, entry.getValue());
+                    ps.addBatch();
+                }
+
+                ps.executeBatch();
+
+            } catch (SQLException e) {
+                plugin.getLogger().severe("§cGagal save player: " + e.getMessage());
+            }
+        });
+    }
+
+    // Save semua player (dipanggil saat /autosave atau shutdown)
+    public void saveAll() {
+        plugin.getLogger().info("§eMenyimpan semua data ekonomi...");
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (UUID uuid : cache.keySet()) {
+            futures.add(savePlayer(uuid));
+        }
+
+        // Tunggu semua selesai
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        plugin.getLogger().info("§aData ekonomi tersimpan!");
+    }
+
+    // ══════════════════════════════════════
+    //  GET BALANCE
     // ══════════════════════════════════════
 
     public double getBalance(UUID uuid, String mode) {
-        Map<String, Double> modeBalances = balances.get(uuid);
+        Map<String, Double> modeBalances = cache.get(uuid);
         if (modeBalances == null) return 0.0;
         return modeBalances.getOrDefault(mode, 0.0);
     }
@@ -129,8 +218,19 @@ public class EconomyManager {
         return getBalance(player.getUniqueId(), mode);
     }
 
+    // ══════════════════════════════════════
+    //  SET BALANCE
+    // ══════════════════════════════════════
+
     public void setBalance(UUID uuid, String mode, double amount) {
-        balances.computeIfAbsent(uuid, k -> new HashMap<>()).put(mode, amount);
+        // Validasi amount
+        if (amount < 0) amount = 0;
+
+        double maxBalance = 999999999.0;
+        if (amount > maxBalance) amount = maxBalance;
+
+        cache.computeIfAbsent(uuid, k -> new ConcurrentHashMap<>())
+             .put(mode, amount);
     }
 
     public void setBalance(UUID uuid, double amount) {
@@ -141,17 +241,9 @@ public class EconomyManager {
         setBalance(player.getUniqueId(), amount);
     }
 
-    public boolean hasEnough(UUID uuid, String mode, double amount) {
-        return getBalance(uuid, mode) >= amount;
-    }
-
-    public boolean hasEnough(UUID uuid, double amount) {
-        return hasEnough(uuid, getPlayerMode(uuid), amount);
-    }
-
-    public boolean hasEnough(Player player, double amount) {
-        return hasEnough(player.getUniqueId(), amount);
-    }
+    // ══════════════════════════════════════
+    //  ADD BALANCE
+    // ══════════════════════════════════════
 
     public void addBalance(UUID uuid, String mode, double amount) {
         setBalance(uuid, mode, getBalance(uuid, mode) + amount);
@@ -164,6 +256,10 @@ public class EconomyManager {
     public void addBalance(Player player, double amount) {
         addBalance(player.getUniqueId(), amount);
     }
+
+    // ══════════════════════════════════════
+    //  REMOVE BALANCE
+    // ══════════════════════════════════════
 
     public boolean removeBalance(UUID uuid, String mode, double amount) {
         if (!hasEnough(uuid, mode, amount)) return false;
@@ -180,14 +276,30 @@ public class EconomyManager {
     }
 
     // ══════════════════════════════════════
-    //  TRANSFER (SAME MODE ONLY!)
+    //  HAS ENOUGH
+    // ══════════════════════════════════════
+
+    public boolean hasEnough(UUID uuid, String mode, double amount) {
+        return getBalance(uuid, mode) >= amount;
+    }
+
+    public boolean hasEnough(UUID uuid, double amount) {
+        return hasEnough(uuid, getPlayerMode(uuid), amount);
+    }
+
+    public boolean hasEnough(Player player, double amount) {
+        return hasEnough(player.getUniqueId(), amount);
+    }
+
+    // ══════════════════════════════════════
+    //  TRANSFER (SESAMA MODE ONLY!)
     // ══════════════════════════════════════
 
     public boolean transfer(UUID from, UUID to, double amount) {
         String fromMode = getPlayerMode(from);
         String toMode = getPlayerMode(to);
 
-        // Must be same mode!
+        // Harus mode yang sama!
         if (!fromMode.equals(toMode)) return false;
         if (!hasEnough(from, fromMode, amount)) return false;
 
@@ -197,70 +309,54 @@ public class EconomyManager {
     }
 
     // ══════════════════════════════════════
-    //  INIT PLAYER (Per Mode)
+    //  TOP BALANCES
     // ══════════════════════════════════════
 
-    public void initPlayer(UUID uuid, String mode) {
-        Map<String, Double> modeBalances = balances.computeIfAbsent(uuid, k -> new HashMap<>());
-        if (!modeBalances.containsKey(mode)) {
-            double start = startingBalance.getOrDefault(mode, 1000.0);
-            modeBalances.put(mode, start);
-        }
-    }
+    // Top balance per mode (dari DB langsung, biar akurat)
+    public CompletableFuture<List<Map.Entry<String, Double>>> getTopBalances(String mode, int limit) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                SELECT player_name, balance 
+                FROM player_economy 
+                WHERE mode_name = ? 
+                ORDER BY balance DESC 
+                LIMIT ?
+                """;
 
-    // Legacy support
-    public void initPlayer(UUID uuid, double startBalance) {
-        String mode = getPlayerMode(uuid);
-        Map<String, Double> modeBalances = balances.computeIfAbsent(uuid, k -> new HashMap<>());
-        if (!modeBalances.containsKey(mode)) {
-            modeBalances.put(mode, startBalance);
-        }
-    }
+            List<Map.Entry<String, Double>> result = new ArrayList<>();
 
-    // ══════════════════════════════════════
-    //  TOP BALANCES (Per Mode)
-    // ══════════════════════════════════════
+            try (Connection conn = db.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-    public List<Map.Entry<UUID, Double>> getTopBalances(String mode, int limit) {
-        Map<UUID, Double> modeBalances = new HashMap<>();
-        for (Map.Entry<UUID, Map<String, Double>> entry : balances.entrySet()) {
-            double bal = entry.getValue().getOrDefault(mode, 0.0);
-            if (bal > 0) {
-                modeBalances.put(entry.getKey(), bal);
+                ps.setString(1, mode);
+                ps.setInt(2, limit);
+
+                ResultSet rs = ps.executeQuery();
+                while (rs.next()) {
+                    result.add(Map.entry(
+                        rs.getString("player_name"),
+                        rs.getDouble("balance")
+                    ));
+                }
+
+            } catch (SQLException e) {
+                plugin.getLogger().severe("§cGagal ambil baltop: " + e.getMessage());
             }
-        }
 
-        List<Map.Entry<UUID, Double>> sorted = new ArrayList<>(modeBalances.entrySet());
-        sorted.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-        return sorted.subList(0, Math.min(limit, sorted.size()));
-    }
-
-    public List<Map.Entry<UUID, Double>> getTopBalances(int limit) {
-        // Get top for ALL modes combined (for global baltop)
-        Map<UUID, Double> totalBalances = new HashMap<>();
-        for (Map.Entry<UUID, Map<String, Double>> entry : balances.entrySet()) {
-            double total = 0;
-            for (double bal : entry.getValue().values()) {
-                total += bal;
-            }
-            totalBalances.put(entry.getKey(), total);
-        }
-
-        List<Map.Entry<UUID, Double>> sorted = new ArrayList<>(totalBalances.entrySet());
-        sorted.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-        return sorted.subList(0, Math.min(limit, sorted.size()));
+            return result;
+        });
     }
 
     // ══════════════════════════════════════
-    //  GET ALL BALANCES (for /bal display)
+    //  GET ALL BALANCES (untuk /bal display)
     // ══════════════════════════════════════
 
     public Map<String, Double> getAllBalances(UUID uuid) {
-        return balances.getOrDefault(uuid, new HashMap<>());
+        return cache.getOrDefault(uuid, new HashMap<>());
     }
 
     // ══════════════════════════════════════
-    //  FORMAT
+    //  FORMAT & NAMA MODE
     // ══════════════════════════════════════
 
     public String formatBalance(double amount) {
@@ -273,13 +369,15 @@ public class EconomyManager {
     }
 
     public String getModeName(String mode) {
-        switch (mode.toLowerCase()) {
-            case "oneblock": return "§aOneBlock";
-            case "skyblock": return "§bSkyblock";
-            case "acid": return "§cAcid Island";
-            case "island": return "§eClassic Island";
-            case "lobby": return "§7Lobby";
-            default: return "§f" + mode;
-        }
+        return switch (mode.toLowerCase()) {
+            case "survival" -> "§aSurvival";
+            case "vanilla"  -> "§2Vanilla";
+            case "oneblock" -> "§aOneBlock";
+            case "skyblock" -> "§bSkyblock";
+            case "island"   -> "§eClassic Island";
+            case "acid"     -> "§cAcid Island";
+            case "lobby"    -> "§7Lobby";
+            default         -> "§f" + mode;
+        };
     }
 }
