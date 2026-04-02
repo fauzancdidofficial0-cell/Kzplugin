@@ -207,36 +207,49 @@ public class PlayerEventListener implements Listener {
         }
     }
 
-    private String getPermissionForCommand(String cmd) {
+        private String getPermissionForCommand(String cmd) {
         return switch (cmd) {
+            // Lobby & Info (semua rank dapat)
             case "help"        -> "kzplugin.cmd.help";
             case "rules"       -> "kzplugin.cmd.rules";
+            case "lobby", "hub" -> "kzplugin.cmd.lobby";
+            case "spawn"       -> "kzplugin.cmd.spawn";
+            case "home"        -> "kzplugin.cmd.island";
+            case "stats"       -> "kzplugin.cmd.stats";
+            case "rank"        -> "kzplugin.cmd.rank";
+            case "discord"     -> "kzplugin.cmd.discord";
+            case "website"     -> "kzplugin.cmd.website";
+
+            // Economy
             case "shop"        -> "kzplugin.cmd.shop";
             case "sell"        -> "kzplugin.cmd.sell";
             case "bal", "balance" -> "kzplugin.cmd.bal";
             case "pay"         -> "kzplugin.cmd.pay";
             case "baltop"      -> "kzplugin.cmd.baltop";
-            case "daily"       -> "kzplugin.cmd.daily";
-            case "weekly"      -> "kzplugin.cmd.weekly";
-            case "tpa"         -> "kzplugin.cmd.tpa";
-            case "tpaccept", "tpadeny" -> "kzplugin.cmd.tpa";
-            case "lobby", "hub" -> "kzplugin.cmd.lobby";
-            case "spawn", "home" -> "kzplugin.cmd.spawn";
-            case "stats"       -> "kzplugin.cmd.stats";
-            case "rank"        -> "kzplugin.cmd.rank";
-            case "discord"     -> "kzplugin.cmd.discord";
-            case "website"     -> "kzplugin.cmd.website";
+            case "ah", "inbox" -> "kzplugin.cmd.ah";
+            case "cf"          -> "kzplugin.cmd.cf";
+
+            // Island
             case "createisland", "deleteisland", "upisland",
                  "islandsetting", "nameisland", "visit",
                  "topisland", "invite", "accept", "deny",
                  "trust", "untrust" -> "kzplugin.cmd.island";
+
+            // TPA
+            case "tpa", "tpaccept", "tpadeny", "tpcancel" -> "kzplugin.cmd.tpa";
+
+            // Land
             case "cekcapasitas", "landinvite", "landaccept",
                  "landdeny", "landrole", "landkick",
                  "trustland", "memberrule", "trustrule",
                  "setlandname", "deleteland" -> "kzplugin.cmd.land";
+
+            // Job & Rewards
             case "job"         -> "kzplugin.cmd.job";
-            case "ah", "inbox" -> "kzplugin.cmd.ah";
-            case "cf"          -> "kzplugin.cmd.cf";
+            case "daily"       -> "kzplugin.cmd.daily";
+            case "weekly"      -> "kzplugin.cmd.weekly";
+
+            // Rank-locked commands
             case "nick"        -> "kzplugin.cmd.nick";
             case "hat"         -> "kzplugin.cmd.hat";
             case "enderchest", "ec" -> "kzplugin.cmd.enderchest";
@@ -246,6 +259,13 @@ public class PlayerEventListener implements Listener {
             case "feed"        -> "kzplugin.cmd.feed";
             case "back"        -> "kzplugin.cmd.back";
             case "god"         -> "kzplugin.cmd.god";
+
+            // Admin commands — skip check (handled by kzplugin.admin)
+            case "setlobby", "setspawn", "createnpc", "removenpc",
+                 "listnpc", "givebal", "removebal", "setrank",
+                 "maintenance", "announce" -> null;
+
+            // Unknown commands — don't block
             default -> null;
         };
     }
