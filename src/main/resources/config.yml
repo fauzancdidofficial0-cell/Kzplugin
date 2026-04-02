@@ -1,12 +1,23 @@
-# ══════════════════════════════════════
-#  KZ PLUGIN v1.0.0 - Configuration
-# ══════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+#  KZ PLUGIN v2.0.0 - Configuration
+#  Multi-Server Setup (Velocity Proxy)
+# ══════════════════════════════════════════════════════════════
 
-# ── Server ──
-server-name: "KZ Server"
+# ══════════════════════════════════════
+#  SERVER IDENTITY
+#  PENTING: Ubah ini per server!
+#  - lobby   → untuk server Lobby
+#  - survival→ untuk server Survival
+#  - void    → untuk server Void (OneBlock/SkyBlock)
+#  - custom  → untuk server Custom (Island/Acid)
+# ══════════════════════════════════════
+server-name: "lobby"
+
 maintenance: false
 
-# ── Spawn (set via /setspawn) ──
+# ══════════════════════════════════════
+#  SPAWN (set via /setlobby or /setspawn)
+# ══════════════════════════════════════
 spawn:
   world: "world"
   x: 0.0
@@ -15,51 +26,110 @@ spawn:
   yaw: 0.0
   pitch: 0.0
 
-# ── Economy ──
+# ══════════════════════════════════════
+#  DATABASE (PlanetScale MySQL)
+#  SSL wajib true untuk PlanetScale
+# ══════════════════════════════════════
+database:
+  host: "aws.connect.psdb.cloud"
+  port: 3306
+  name: "kzplugin"
+  username: "YOUR_USERNAME"
+  password: "YOUR_PASSWORD"
+  ssl: true
+
+# ══════════════════════════════════════
+#  ECONOMY
+#  7 mode terpisah, saldo tidak lintas mode
+# ══════════════════════════════════════
 economy:
+  currency-symbol: "$"
+  
   starting-balance:
+    lobby: 0
+    survival: 1000
+    vanilla: 1000
     oneblock: 1000
     skyblock: 1000
-    acid: 500
     island: 2000
-    lobby: 0
-  currency-symbol: "$"
+    acid: 500
 
-# ── Island ──
+  world-mode-map:
+    world_lobby: "lobby"
+    world_survival: "survival"
+    world_vanilla: "vanilla"
+    world_oneblock: "oneblock"
+    world_skyblock: "skyblock"
+    world_island: "island"
+    world_acid: "acid"
+    world: "survival"
+    world_nether: "survival"
+    world_the_end: "survival"
+
+# ══════════════════════════════════════
+#  ISLAND
+# ══════════════════════════════════════
 island:
   default-border: 25
   upgrade-multiplier: 100
+  upgrade-cost-base: 5000
   modes:
     - oneblock
     - skyblock
     - acid
     - island
 
-# ── Land ──
+# ══════════════════════════════════════
+#  LAND CLAIM
+#  Max size dikontrol oleh Rank di LobbySystem
+# ══════════════════════════════════════
 land:
   min-size: 5
   max-size:
-    Member: 25
-    Iron: 30
-    Gold: 35
-    Diamond: 40
-    Emerald: 50
-    Obsidian: 60
-    Onyx: 75
-    Phantom: 100
-    Eclipse: 150
-    Ethereal: 200
-    Owner: 999
+    member: 25
+    iron: 30
+    gold: 35
+    diamond: 40
+    emerald: 50
+    obsidian: 60
+    onyx: 75
+    phantom: 100
+    eclipse: 150
+    ethereal: 200
 
-# ── Job ──
+# ══════════════════════════════════════
+#  JOB SYSTEM
+# ══════════════════════════════════════
 job:
   change-cooldown-ms: 3600000
   available:
     - miner
     - farmer
     - hunter
+  rewards:
+    miner:
+      stone: 0.5
+      coal_ore: 2.0
+      iron_ore: 5.0
+      gold_ore: 10.0
+      diamond_ore: 50.0
+    farmer:
+      wheat: 1.0
+      carrot: 1.0
+      potato: 1.0
+      beetroot: 1.5
+      melon: 2.0
+      pumpkin: 2.0
+    hunter:
+      zombie: 5.0
+      skeleton: 5.0
+      creeper: 10.0
+      spider: 5.0
+      enderman: 20.0
 
-# ── Daily Reward ──
+# ══════════════════════════════════════
+#  DAILY REWARD
+# ══════════════════════════════════════
 daily:
   cooldown-ms: 86400000
   streak-reset-ms: 172800000
@@ -71,61 +141,79 @@ daily:
     streak14: 5000
     streak30: 10000
 
-# ── Weekly Reward ──
+# ══════════════════════════════════════
+#  WEEKLY REWARD
+# ══════════════════════════════════════
 weekly:
   cooldown-ms: 604800000
   reward: 10000
 
-# ── TPA ──
+# ══════════════════════════════════════
+#  TPA
+# ══════════════════════════════════════
 tpa:
   expire-ticks: 1200
+  cooldown-ms: 30000
 
-# ── Auction House ──
+# ══════════════════════════════════════
+#  AUCTION HOUSE
+# ══════════════════════════════════════
 auction:
   max-listings-per-player: 5
   expire-ms: 86400000
+  min-price: 1
+  max-price: 1000000000
 
-# ── Coinflip ──
+# ══════════════════════════════════════
+#  COINFLIP
+# ══════════════════════════════════════
 coinflip:
+  min-bet: 100
   max-bet: 50000
 
-# ── Database (PlanetScale) ──
-database:
-  host: "ISI_HOST_PLANETSCALE"
-  port: 3306
-  name: "ISI_NAMA_DB"
-  username: "ISI_USERNAME"
-  password: "ISI_PASSWORD"
-  ssl: true
-  
-# ── Scoreboard ──
+# ══════════════════════════════════════
+#  SCOREBOARD
+# ══════════════════════════════════════
 scoreboard:
   enabled: true
-  update-ticks: 20
+  update-ticks: 60
 
-# ── ClearLag ──
+# ══════════════════════════════════════
+#  CLEARLAG
+# ══════════════════════════════════════
 clearlag:
+  enabled: true
   interval-ticks: 12000
-  warning-ticks: 600
+  warning-seconds: 30
 
-# ── Auto Save ──
+# ══════════════════════════════════════
+#  AUTO SAVE
+# ══════════════════════════════════════
 autosave:
   interval-ticks: 6000
 
-# ── Fireworks ──
+# ══════════════════════════════════════
+#  FIREWORKS (Lobby decoration)
+# ══════════════════════════════════════
 fireworks:
   enabled: true
   interval-ticks: 3600
 
-# ── Links ──
+# ══════════════════════════════════════
+#  LINKS
+# ══════════════════════════════════════
 links:
   discord: "https://discord.gg/kzserver"
   website: "https://store.kzserver.com"
 
-# ── Messages ──
+# ══════════════════════════════════════
+#  MESSAGES
+# ══════════════════════════════════════
 messages:
   prefix: "§b§lKZ §8»"
-  no-permission: "§7You don't have permission."
-  player-only: "§7This command is for players only."
-  player-not-found: "§7Player not found."
-  player-not-online: "§7Player is not online."
+  no-permission: "§cYou don't have permission to do that."
+  player-only: "§cThis command can only be used by players."
+  player-not-found: "§cPlayer not found."
+  player-not-online: "§cThat player is not online."
+  invalid-amount: "§cPlease enter a valid amount."
+  insufficient-funds: "§cYou don't have enough money."
