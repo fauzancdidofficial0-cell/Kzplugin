@@ -27,16 +27,15 @@ spawn:
   pitch: 0.0
 
 # ══════════════════════════════════════
-#  DATABASE (PlanetScale MySQL)
-#  SSL wajib true untuk PlanetScale
+#  DATABASE (Railway MySQL)
 # ══════════════════════════════════════
 database:
-  host: "aws.connect.psdb.cloud"
+  host: "mysql-production-f8ee.up.railway.app"
   port: 3306
-  name: "kzplugin"
-  username: "YOUR_USERNAME"
-  password: "YOUR_PASSWORD"
-  ssl: true
+  name: "railway"
+  username: "root"
+  password: "UPubnljraycSkXzlijXDnrrWnqnqCAZE"
+  ssl: false
 
 # ══════════════════════════════════════
 #  ECONOMY
