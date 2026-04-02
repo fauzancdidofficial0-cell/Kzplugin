@@ -1,15 +1,21 @@
+// ============================================================
+// Path: src/main/java/com/kz/plugin/KZPlugin.java
+// ============================================================
 package com.kz.plugin;
 
 import com.kz.plugin.commands.*;
 import com.kz.plugin.listeners.*;
 import com.kz.plugin.systems.*;
 import com.kz.plugin.data.*;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class KZPlugin extends JavaPlugin {
 
     private static KZPlugin instance;
+
+    private DatabaseManager databaseManager;
     private EconomyManager economyManager;
     private IslandSystem islandSystem;
     private OneBlockSystem oneBlockSystem;
@@ -20,7 +26,7 @@ public class KZPlugin extends JavaPlugin {
     private ItemDatabase itemDatabase;
     private DailyRewardSystem dailyRewardSystem;
     private WeeklyRewardSystem weeklyRewardSystem;
-    private SpawnerItemFactory spawnerItemFactory; // ✅ TAMBAH INI
+    private SpawnerItemFactory spawnerItemFactory;
 
     @Override
     public void onEnable() {
@@ -29,13 +35,32 @@ public class KZPlugin extends JavaPlugin {
 
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         getLogger().info("  KZ PLUGIN - Initializing...");
+        getLogger().info("  Server: " + getConfig().getString("server-name", "unknown"));
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         // ══════════════════════════════════
-        //  Initialize Core Systems
+        //  1. Database Connection
+        // ══════════════════════════════════
+        databaseManager = new DatabaseManager(this);
+        if (!databaseManager.connect()) {
+            getLogger().severe("[KZ] Database connection failed! Disabling plugin...");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        // ══════════════════════════════════
+        //  2. Register BungeeCord Channel
+        // ══════════════════════════════════
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord",
+            new ProxyMessageListener(this));
+        getLogger().info("[KZ] BungeeCord plugin messaging channel registered.");
+
+        // ══════════════════════════════════
+        //  3. Initialize Systems
         // ══════════════════════════════════
         itemDatabase = new ItemDatabase();
-        economyManager = new EconomyManager(this);
+        economyManager = new EconomyManager(this, databaseManager);
         islandSystem = new IslandSystem(this);
         oneBlockSystem = new OneBlockSystem(this);
         landSystem = new LandSystem(this);
@@ -44,43 +69,54 @@ public class KZPlugin extends JavaPlugin {
         lobbySystem = new LobbySystem(this);
         dailyRewardSystem = new DailyRewardSystem(this);
         weeklyRewardSystem = new WeeklyRewardSystem(this);
-        spawnerItemFactory = new SpawnerItemFactory(this); // ✅ TAMBAH INI
+        spawnerItemFactory = new SpawnerItemFactory(this);
 
         // ══════════════════════════════════
-        //  Register Commands
+        //  4. Register Commands
         // ══════════════════════════════════
         registerCommands();
 
         // ══════════════════════════════════
-        //  Register Listeners
+        //  5. Register Listeners
         // ══════════════════════════════════
         registerListeners();
 
         // ══════════════════════════════════
-        //  Start Scheduled Tasks
+        //  6. Start Scheduled Tasks
         // ══════════════════════════════════
         startTasks();
 
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        getLogger().info("  KZ PLUGIN v1.0.0 - Enabled");
-        getLogger().info("  Systems : All operational");
+        getLogger().info("  KZ PLUGIN v2.0.0 - Enabled");
+        getLogger().info("  Mode    : Multi-Server (Velocity)");
+        getLogger().info("  Server  : " + getConfig().getString("server-name", "unknown"));
+        getLogger().info("  Database: Connected (" + databaseManager.getPoolStats() + ")");
         getLogger().info("  Items   : " + itemDatabase.getTotalItems() + " registered");
-        getLogger().info("  Author  : KZ Team");
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
     @Override
     public void onDisable() {
-        if (economyManager != null) economyManager.saveAll();
+        // Economy: stop autosave + save all + clear cache
+        if (economyManager != null) economyManager.shutdown();
+
+        // Other systems save
         if (islandSystem != null) islandSystem.saveAll();
         if (landSystem != null) landSystem.saveAll();
         if (lobbySystem != null) lobbySystem.saveData();
         if (dailyRewardSystem != null) dailyRewardSystem.saveData();
         if (weeklyRewardSystem != null) weeklyRewardSystem.saveData();
 
+        // Unregister channels
+        getServer().getMessenger().unregisterOutgoingPluginChannel(this);
+        getServer().getMessenger().unregisterIncomingPluginChannel(this);
+
+        // Close database last
+        if (databaseManager != null) databaseManager.disconnect();
+
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        getLogger().info("  KZ PLUGIN v1.0.0 - Disabled");
-        getLogger().info("  All data saved successfully.");
+        getLogger().info("  KZ PLUGIN v2.0.0 - Disabled");
+        getLogger().info("  All data saved. Database closed.");
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
@@ -91,110 +127,113 @@ public class KZPlugin extends JavaPlugin {
         AuctionCommand ahCmd = new AuctionCommand(this);
         EconomyCommand ecoCmd = new EconomyCommand(this);
 
-        getCommand("shop").setExecutor(shopCmd);
-        getCommand("sell").setExecutor(sellCmd);
-        getCommand("ah").setExecutor(ahCmd);
-        getCommand("inbox").setExecutor(ahCmd);
-        getCommand("bal").setExecutor(ecoCmd);
-        getCommand("pay").setExecutor(ecoCmd);
-        getCommand("baltop").setExecutor(ecoCmd);
-        getCommand("cf").setExecutor(ecoCmd);
+        setCmd("shop", shopCmd);
+        setCmd("sell", sellCmd);
+        setCmd("ah", ahCmd);
+        setCmd("inbox", ahCmd);
+        setCmd("bal", ecoCmd);
+        setCmd("pay", ecoCmd);
+        setCmd("baltop", ecoCmd);
+        setCmd("cf", ecoCmd);
 
-        // Island System
+        // Island
         IslandCommand islandCmd = new IslandCommand(this);
-        getCommand("createisland").setExecutor(islandCmd);
-        getCommand("deleteisland").setExecutor(islandCmd);
-        getCommand("home").setExecutor(islandCmd);
-        getCommand("upisland").setExecutor(islandCmd);
-        getCommand("islandsetting").setExecutor(islandCmd);
-        getCommand("nameisland").setExecutor(islandCmd);
-        getCommand("visit").setExecutor(islandCmd);
-        getCommand("topisland").setExecutor(islandCmd);
-        getCommand("invite").setExecutor(islandCmd);
-        getCommand("accept").setExecutor(islandCmd);
-        getCommand("deny").setExecutor(islandCmd);
-        getCommand("trust").setExecutor(islandCmd);
-        getCommand("untrust").setExecutor(islandCmd);
+        setCmd("createisland", islandCmd);
+        setCmd("deleteisland", islandCmd);
+        setCmd("home", islandCmd);
+        setCmd("upisland", islandCmd);
+        setCmd("islandsetting", islandCmd);
+        setCmd("nameisland", islandCmd);
+        setCmd("visit", islandCmd);
+        setCmd("topisland", islandCmd);
+        setCmd("invite", islandCmd);
+        setCmd("accept", islandCmd);
+        setCmd("deny", islandCmd);
+        setCmd("trust", islandCmd);
+        setCmd("untrust", islandCmd);
 
-        // TPA System
+        // TPA
         TPACommand tpaCmd = new TPACommand(this);
-        getCommand("tpa").setExecutor(tpaCmd);
-        getCommand("tpaccept").setExecutor(tpaCmd);
-        getCommand("tpadeny").setExecutor(tpaCmd);
-        getCommand("tpcancel").setExecutor(tpaCmd);
+        setCmd("tpa", tpaCmd);
+        setCmd("tpaccept", tpaCmd);
+        setCmd("tpadeny", tpaCmd);
+        setCmd("tpcancel", tpaCmd);
 
-        // Land System
+        // Land
         LandCommand landCmd = new LandCommand(this);
-        getCommand("landinvite").setExecutor(landCmd);
-        getCommand("landaccept").setExecutor(landCmd);
-        getCommand("landdeny").setExecutor(landCmd);
-        getCommand("landrole").setExecutor(landCmd);
-        getCommand("landkick").setExecutor(landCmd);
-        getCommand("trustland").setExecutor(landCmd);
-        getCommand("memberrule").setExecutor(landCmd);
-        getCommand("trustrule").setExecutor(landCmd);
-        getCommand("setlandname").setExecutor(landCmd);
-        getCommand("deleteland").setExecutor(landCmd);
-        getCommand("cekcapasitas").setExecutor(landCmd);
+        setCmd("landinvite", landCmd);
+        setCmd("landaccept", landCmd);
+        setCmd("landdeny", landCmd);
+        setCmd("landrole", landCmd);
+        setCmd("landkick", landCmd);
+        setCmd("trustland", landCmd);
+        setCmd("memberrule", landCmd);
+        setCmd("trustrule", landCmd);
+        setCmd("setlandname", landCmd);
+        setCmd("deleteland", landCmd);
+        setCmd("cekcapasitas", landCmd);
 
         // Job & Reward
-        JobCommand jobCmd = new JobCommand(this);
-        DailyCommand dailyCmd = new DailyCommand(this);
-        WeeklyCommand weeklyCmd = new WeeklyCommand(this);
-        getCommand("job").setExecutor(jobCmd);
-        getCommand("daily").setExecutor(dailyCmd);
-        getCommand("weekly").setExecutor(weeklyCmd);
+        setCmd("job", new JobCommand(this));
+        setCmd("daily", new DailyCommand(this));
+        setCmd("weekly", new WeeklyCommand(this));
 
         // Lobby & Info
         LobbyCommand lobbyCmd = new LobbyCommand(this);
-        getCommand("lobby").setExecutor(lobbyCmd);
-        getCommand("spawn").setExecutor(lobbyCmd);
-        getCommand("help").setExecutor(lobbyCmd);
-        getCommand("stats").setExecutor(lobbyCmd);
-        getCommand("rank").setExecutor(lobbyCmd);
-        getCommand("discord").setExecutor(lobbyCmd);
-        getCommand("website").setExecutor(lobbyCmd);
-        getCommand("rules").setExecutor(lobbyCmd);
+        setCmd("lobby", lobbyCmd);
+        setCmd("hub", lobbyCmd);
+        setCmd("spawn", lobbyCmd);
+        setCmd("help", lobbyCmd);
+        setCmd("stats", lobbyCmd);
+        setCmd("rank", lobbyCmd);
+        setCmd("discord", lobbyCmd);
+        setCmd("website", lobbyCmd);
+        setCmd("rules", lobbyCmd);
 
         // Admin
         AdminCommand adminCmd = new AdminCommand(this);
-        getCommand("setlobby").setExecutor(adminCmd);
-        getCommand("setspawn").setExecutor(adminCmd);
-        getCommand("createnpc").setExecutor(adminCmd);
-        getCommand("removenpc").setExecutor(adminCmd);
-        getCommand("listnpc").setExecutor(adminCmd);
-        getCommand("givebal").setExecutor(adminCmd);
-        getCommand("removebal").setExecutor(adminCmd);
-        getCommand("setrank").setExecutor(adminCmd);
-        getCommand("maintenance").setExecutor(adminCmd);
-        getCommand("announce").setExecutor(adminCmd);
+        setCmd("setlobby", adminCmd);
+        setCmd("setspawn", adminCmd);
+        setCmd("createnpc", adminCmd);
+        setCmd("removenpc", adminCmd);
+        setCmd("listnpc", adminCmd);
+        setCmd("givebal", adminCmd);
+        setCmd("removebal", adminCmd);
+        setCmd("setrank", adminCmd);
+        setCmd("maintenance", adminCmd);
+        setCmd("announce", adminCmd);
+    }
+
+    private void setCmd(String name, Object executor) {
+        var cmd = getCommand(name);
+        if (cmd != null) {
+            cmd.setExecutor((org.bukkit.command.CommandExecutor) executor);
+        } else {
+            getLogger().warning("[KZ] Command '/" + name + "' not found in plugin.yml!");
+        }
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(
-            new GUIListener(this), this);
-        getServer().getPluginManager().registerEvents(
-            new PlayerEventListener(this), this);
-        getServer().getPluginManager().registerEvents(
-            new BlockEventListener(this), this);
-        getServer().getPluginManager().registerEvents(
-            new EntityEventListener(this), this);
-        getServer().getPluginManager().registerEvents(    // ✅ TAMBAH INI
-            new SpawnerPlaceListener(this), this);        // ✅ TAMBAH INI
-        getServer().getPluginManager().registerEvents(    // ✅ TAMBAH INI
-            new SpawnerDropListener(this), this);         // ✅ TAMBAH INI
+        var pm = getServer().getPluginManager();
+        pm.registerEvents(new GUIListener(this), this);
+        pm.registerEvents(new PlayerEventListener(this), this);
+        pm.registerEvents(new BlockEventListener(this), this);
+        pm.registerEvents(new EntityEventListener(this), this);
+        pm.registerEvents(new SpawnerPlaceListener(this), this);
+        pm.registerEvents(new SpawnerDropListener(this), this);
     }
 
     private void startTasks() {
-        // Scoreboard - every 1 second
+        // Scoreboard + Nametag update - every 3 seconds (60 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
-                lobbySystem.updateScoreboard();
+                lobbySystem.updateAllScoreboards();
+                lobbySystem.updateAllNametags();
             }
-        }.runTaskTimer(this, 20L, 20L);
+        }.runTaskTimer(this, 60L, 60L);
 
-        // Playtime - every 1 minute
+        // Playtime tracker - every 1 minute
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -210,7 +249,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 12000L, 12000L);
 
-        // Auction expire - every 5 minutes
+        // Auction expire check - every 5 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -218,11 +257,11 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Auto-save - every 5 minutes
+        // Auto-save (non-economy systems) - every 5 minutes
+        // Economy autosave is handled by EconomyManager internally
         new BukkitRunnable() {
             @Override
             public void run() {
-                economyManager.saveAll();
                 islandSystem.saveAll();
                 landSystem.saveAll();
                 lobbySystem.saveData();
@@ -232,7 +271,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Fireworks - every 3 minutes
+        // Lobby fireworks - every 3 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -244,8 +283,8 @@ public class KZPlugin extends JavaPlugin {
     // ══════════════════════════════════
     //  Getters
     // ══════════════════════════════════
-
     public static KZPlugin getInstance() { return instance; }
+    public DatabaseManager getDatabaseManager() { return databaseManager; }
     public EconomyManager getEconomyManager() { return economyManager; }
     public IslandSystem getIslandSystem() { return islandSystem; }
     public OneBlockSystem getOneBlockSystem() { return oneBlockSystem; }
@@ -256,5 +295,5 @@ public class KZPlugin extends JavaPlugin {
     public ItemDatabase getItemDatabase() { return itemDatabase; }
     public DailyRewardSystem getDailyRewardSystem() { return dailyRewardSystem; }
     public WeeklyRewardSystem getWeeklyRewardSystem() { return weeklyRewardSystem; }
-    public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; } // ✅ TAMBAH INI
+    public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; }
 }
