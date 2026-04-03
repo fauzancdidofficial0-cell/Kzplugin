@@ -89,7 +89,7 @@ public class KZPlugin extends JavaPlugin {
         quizSystem = new QuizSystem(this);
         antiSpamSystem = new AntiSpamSystem(this);
         commandBlocker = new CommandBlocker(this);   // ← LAST (needs EconomyManager)
-
+        
         // ══════════════════════════════════
         //  4. Register Commands
         // ══════════════════════════════════
@@ -223,6 +223,9 @@ public class KZPlugin extends JavaPlugin {
         // ─── Menu (Bedrock + Java) ───
         setCmd("menu", new MenuCommand(this));
         setCmd("givekey", crateCmd);
+
+        // ---- Crate ----
+        setCmd("createkey", new CreateKeyCommand(this));
 
         // ─── Admin ───
         AdminCommand adminCmd = new AdminCommand(this);
