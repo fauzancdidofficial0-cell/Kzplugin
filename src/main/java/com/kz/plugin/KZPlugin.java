@@ -222,6 +222,7 @@ public class KZPlugin extends JavaPlugin {
 
         // ─── Menu (Bedrock + Java) ───
         setCmd("menu", new MenuCommand(this));
+        setCmd("givekey", crateCmd);
 
         // ─── Admin ───
         AdminCommand adminCmd = new AdminCommand(this);
