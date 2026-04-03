@@ -4,7 +4,6 @@
 package com.kz.plugin.listeners;
 
 import com.kz.plugin.KZPlugin;
-import com.kz.plugin.systems.CrateSystem;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
@@ -17,22 +16,22 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class CrateListener implements Listener {
 
     private final KZPlugin plugin;
-    private static final String EDITOR_TITLE_PREFIX = "§8§lCrate Editor: §r§b";
-    private static final String PREVIEW_TITLE_PREFIX = "§8Preview: §b";
+    private static final String EDITOR_PREFIX = "§8§lCrate Editor: §r§b";
+    private static final String PREVIEW_PREFIX = "§8Preview: §b";
 
     public CrateListener(KZPlugin plugin) {
         this.plugin = plugin;
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  PLAYER INTERACT - Right-click to open, Left-click to edit
+    //  PLAYER INTERACT
     // ════════════════════════════════════════════════════════════════
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -41,34 +40,24 @@ public class CrateListener implements Listener {
 
         Block block = event.getClickedBlock();
         if (block == null) return;
-
-        // Only handle shulker box blocks
         if (!block.getType().name().contains("SHULKER_BOX")) return;
-
-        // Check if this is a registered crate
         if (!plugin.getCrateSystem().isCrate(block)) return;
 
         Player player = event.getPlayer();
-        CrateSystem crateSystem = plugin.getCrateSystem();
 
-        // ── RIGHT CLICK = Open crate (player) ──
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            event.setCancelled(true); // Prevent opening shulker inventory
-
-            crateSystem.handleCrateRightClick(player, block);
-        }
-
-        // ── LEFT CLICK = Edit crate (admin only) ──
-        else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            event.setCancelled(true);
+            plugin.getCrateSystem().handleCrateRightClick(player, block);
+        } else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (player.hasPermission("kzplugin.admin") && player.isSneaking()) {
                 event.setCancelled(true);
-                crateSystem.handleCrateLeftClick(player, block);
+                plugin.getCrateSystem().handleCrateLeftClick(player, block);
             }
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  INVENTORY CLICK - Editor GUI handling
+    //  EDITOR GUI
     // ════════════════════════════════════════════════════════════════
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -78,26 +67,17 @@ public class CrateListener implements Listener {
 
         String title = player.getOpenInventory().getTitle();
 
-        // ── Editor GUI ──
-        if (title.startsWith(EDITOR_TITLE_PREFIX)) {
+        if (title.startsWith(EDITOR_PREFIX)) {
             boolean handled = plugin.getCrateSystem().handleEditorClick(
-                    player, event.getInventory(), event.getRawSlot(), event.isShiftClick());
-
-            if (handled) {
-                event.setCancelled(true);
-            }
+                    player, event.getInventory(), event.getRawSlot());
+            if (handled) event.setCancelled(true);
             return;
         }
 
-        // ── Preview GUI - block ALL clicks (read-only) ──
-        if (title.startsWith(PREVIEW_TITLE_PREFIX)) {
+        if (title.startsWith(PREVIEW_PREFIX)) {
             event.setCancelled(true);
         }
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  INVENTORY CLOSE - Cleanup editor tracking
-    // ════════════════════════════════════════════════════════════════
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
@@ -105,60 +85,97 @@ public class CrateListener implements Listener {
         if (plugin.getCrateSystem() == null) return;
 
         String title = player.getOpenInventory().getTitle();
-
-        if (title.startsWith(EDITOR_TITLE_PREFIX)) {
-            // If player closes without clicking SAVE, we still auto-save
-            if (plugin.getCrateSystem().isEditing(player)) {
-                // Auto-save on close
-                plugin.getCrateSystem().handleEditorClose(player);
-            }
+        if (title.startsWith(EDITOR_PREFIX) && plugin.getCrateSystem().isEditing(player)) {
+            plugin.getCrateSystem().handleEditorClose(player);
         }
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  PROTECT CRATE BLOCKS - Prevent breaking
+    //  PROTECT CRATE BLOCKS
     // ════════════════════════════════════════════════════════════════
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockBreak(BlockBreakEvent event) {
         if (plugin.getCrateSystem() == null) return;
-
         if (plugin.getCrateSystem().isCrate(event.getBlock())) {
-            if (!event.getPlayer().hasPermission("kzplugin.admin")) {
-                event.setCancelled(true);
-                event.getPlayer().sendMessage("§c§lKZ §8» §cYou cannot break a crate!");
-                event.getPlayer().sendMessage("  §7Use §e/gachadelete §7to remove it (admin only).");
-            } else {
-                // Even admin can't break directly, must use command
-                event.setCancelled(true);
-                event.getPlayer().sendMessage("§e§lKZ §8» §eUse §f/gachadelete §eto remove crates.");
-            }
+            event.setCancelled(true);
+            event.getPlayer().sendMessage("§c§lKZ §8» §cUse §f/gachadelete §cto remove crates.");
         }
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockExplode(BlockExplodeEvent event) {
         if (plugin.getCrateSystem() == null) return;
-        event.blockList().removeIf(block -> plugin.getCrateSystem().isCrate(block));
+        event.blockList().removeIf(b -> plugin.getCrateSystem().isCrate(b));
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityExplode(EntityExplodeEvent event) {
         if (plugin.getCrateSystem() == null) return;
-        event.blockList().removeIf(block -> plugin.getCrateSystem().isCrate(block));
+        event.blockList().removeIf(b -> plugin.getCrateSystem().isCrate(b));
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  PROTECT HOLOGRAMS - Prevent interaction
-    // ════════════════════════════════════════════════════════════════
 
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (plugin.getCrateSystem() == null) return;
+        if (event.getEntity() instanceof ArmorStand && plugin.getCrateSystem().isHologram(event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
 
-        if (event.getEntity() instanceof ArmorStand) {
-            if (plugin.getCrateSystem().isHologram(event.getEntity())) {
-                event.setCancelled(true);
+    // ════════════════════════════════════════════════════════════════
+    //  ANTI-EXPLOIT: Block anvil/craft/grindstone/smithing on keys
+    // ════════════════════════════════════════════════════════════════
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPrepareAnvil(PrepareAnvilEvent event) {
+        if (plugin.getCrateSystem() == null) return;
+
+        var anvil = event.getInventory();
+        for (int i = 0; i < 2; i++) {
+            ItemStack item = anvil.getItem(i);
+            if (item != null && plugin.getCrateSystem().isAnyCrateKey(item)) {
+                event.setResult(null);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPrepareGrindstone(PrepareGrindstoneEvent event) {
+        if (plugin.getCrateSystem() == null) return;
+
+        var inv = event.getInventory();
+        for (int i = 0; i < 2; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null && plugin.getCrateSystem().isAnyCrateKey(item)) {
+                event.setResult(null);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        if (plugin.getCrateSystem() == null) return;
+
+        for (ItemStack item : event.getInventory().getMatrix()) {
+            if (item != null && plugin.getCrateSystem().isAnyCrateKey(item)) {
+                event.getInventory().setResult(null);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPrepareSmithing(PrepareSmithingEvent event) {
+        if (plugin.getCrateSystem() == null) return;
+
+        var inv = event.getInventory();
+        for (ItemStack item : new ItemStack[]{inv.getInputEquipment(), inv.getInputMineral()}) {
+            if (item != null && plugin.getCrateSystem().isAnyCrateKey(item)) {
+                event.setResult(null);
+                return;
             }
         }
     }
