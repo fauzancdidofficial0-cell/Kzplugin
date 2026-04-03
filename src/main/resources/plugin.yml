@@ -338,6 +338,10 @@ commands:
     description: Reload config.yml
     usage: /reloadconfig
     permission: kzplugin.admin
+  givekey:
+    description: Give crate key to a player
+    usage: /givekey <player> <crateId> [amount]
+    permission: kzplugin.admin
 
 # ══════════════════════════════════════
 #  PERMISSIONS
