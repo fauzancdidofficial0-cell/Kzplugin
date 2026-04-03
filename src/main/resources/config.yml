@@ -186,6 +186,141 @@ clearlag:
   warning-seconds: 30
 
 # ============================================================
+# COMMAND BLOCKER
+# ============================================================
+
+# Command Blocker System
+command-blocker:
+  enabled: true
+
+  # Commands blocked on ALL servers (security)
+  global-blocked:
+    - /op
+    - /deop
+    - /stop
+    - /restart
+    - /reload
+    - /plugins
+    - /pl
+    - /ver
+    - /version
+    - /bukkit:reload
+    - /bukkit:plugins
+    - /bukkit:version
+    - /minecraft:op
+    - /minecraft:deop
+    - /timings
+    - /spark
+    - /paper
+
+  # Commands blocked per server
+  servers:
+    lobby:
+      message: "This command is not available in the lobby! Select a game mode first."
+      commands:
+        - /shop
+        - /sell
+        - /ah
+        - /inbox
+        - /job
+        - /createisland
+        - /deleteisland
+        - /upisland
+        - /islandsetting
+        - /nameisland
+        - /home
+        - /visit
+        - /topisland
+        - /invite
+        - /accept
+        - /deny
+        - /trust
+        - /untrust
+        - /landinvite
+        - /landaccept
+        - /landdeny
+        - /landrole
+        - /landkick
+        - /trustland
+        - /memberrule
+        - /trustrule
+        - /setlandname
+        - /deleteland
+        - /cekcapasitas
+        - /tpa
+        - /tpaccept
+        - /tpadeny
+        - /tpcancel
+        - /cf
+        - /weekly
+
+    survival:
+      message: "This command is only available in island game modes!"
+      commands:
+        - /createisland
+        - /deleteisland
+        - /upisland
+        - /islandsetting
+        - /nameisland
+
+    void:
+      message: "Land commands are not available in this game mode!"
+      commands:
+        - /landinvite
+        - /landaccept
+        - /landdeny
+        - /landrole
+        - /landkick
+        - /trustland
+        - /memberrule
+        - /trustrule
+        - /setlandname
+        - /deleteland
+        - /cekcapasitas
+
+    custom:
+      message: "Land commands are not available in this game mode!"
+      commands:
+        - /landinvite
+        - /landaccept
+        - /landdeny
+        - /landrole
+        - /landkick
+        - /trustland
+        - /memberrule
+        - /trustrule
+        - /setlandname
+        - /deleteland
+        - /cekcapasitas
+
+  # Commands blocked per game mode
+  modes:
+    vanilla:
+      message: "This command is disabled in Vanilla mode for a pure survival experience!"
+      commands:
+        - /shop
+        - /sell
+        - /ah
+        - /inbox
+        - /cf
+        - /job
+        - /daily
+        - /weekly
+        - /baltop
+
+    lobby:
+      message: "Select a game mode first before using this command!"
+      commands:
+        - /shop
+        - /sell
+        - /ah
+        - /inbox
+        - /job
+        - /createisland
+        - /deleteisland
+        - /cf
+
+# ============================================================
 # QUIZ & AUTO SPAM
 # ============================================================
 
