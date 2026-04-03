@@ -1,5 +1,5 @@
 // ============================================================
-// Path: src/main/java/com/kz/plugin/KZPlugin.java
+// PATH: src/main/java/com/kz/plugin/KZPlugin.java
 // ============================================================
 package com.kz.plugin;
 
@@ -15,6 +15,9 @@ public class KZPlugin extends JavaPlugin {
 
     private static KZPlugin instance;
 
+    // ══════════════════════════════════
+    //  System Instances
+    // ══════════════════════════════════
     private DatabaseManager databaseManager;
     private EconomyManager economyManager;
     private IslandSystem islandSystem;
@@ -27,6 +30,11 @@ public class KZPlugin extends JavaPlugin {
     private DailyRewardSystem dailyRewardSystem;
     private WeeklyRewardSystem weeklyRewardSystem;
     private SpawnerItemFactory spawnerItemFactory;
+    private CrateSystem crateSystem;
+
+    // ══════════════════════════════════
+    //  ENABLE
+    // ══════════════════════════════════
 
     @Override
     public void onEnable() {
@@ -53,7 +61,7 @@ public class KZPlugin extends JavaPlugin {
         // ══════════════════════════════════
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord",
-            new ProxyMessageListener(this));
+                new ProxyMessageListener(this));
         getLogger().info("[KZ] BungeeCord plugin messaging channel registered.");
 
         // ══════════════════════════════════
@@ -70,6 +78,7 @@ public class KZPlugin extends JavaPlugin {
         dailyRewardSystem = new DailyRewardSystem(this);
         weeklyRewardSystem = new WeeklyRewardSystem(this);
         spawnerItemFactory = new SpawnerItemFactory(this);
+        crateSystem = new CrateSystem(this);
 
         // ══════════════════════════════════
         //  4. Register Commands
@@ -92,13 +101,21 @@ public class KZPlugin extends JavaPlugin {
         getLogger().info("  Server  : " + getConfig().getString("server-name", "unknown"));
         getLogger().info("  Database: Connected (" + databaseManager.getPoolStats() + ")");
         getLogger().info("  Items   : " + itemDatabase.getTotalItems() + " registered");
+        getLogger().info("  Crates  : " + crateSystem.getAllCrates().size() + " loaded");
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
+
+    // ══════════════════════════════════
+    //  DISABLE
+    // ══════════════════════════════════
 
     @Override
     public void onDisable() {
         // Economy: stop autosave + save all + clear cache
         if (economyManager != null) economyManager.shutdown();
+
+        // Crate: remove holograms + save data
+        if (crateSystem != null) crateSystem.shutdown();
 
         // Other systems save
         if (islandSystem != null) islandSystem.saveAll();
@@ -120,8 +137,12 @@ public class KZPlugin extends JavaPlugin {
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
+    // ══════════════════════════════════
+    //  REGISTER COMMANDS
+    // ══════════════════════════════════
+
     private void registerCommands() {
-        // Shop & Economy
+        // ─── Shop & Economy ───
         ShopCommand shopCmd = new ShopCommand(this);
         SellCommand sellCmd = new SellCommand(this);
         AuctionCommand ahCmd = new AuctionCommand(this);
@@ -136,7 +157,7 @@ public class KZPlugin extends JavaPlugin {
         setCmd("baltop", ecoCmd);
         setCmd("cf", ecoCmd);
 
-        // Island
+        // ─── Island ───
         IslandCommand islandCmd = new IslandCommand(this);
         setCmd("createisland", islandCmd);
         setCmd("deleteisland", islandCmd);
@@ -152,14 +173,14 @@ public class KZPlugin extends JavaPlugin {
         setCmd("trust", islandCmd);
         setCmd("untrust", islandCmd);
 
-        // TPA
+        // ─── TPA ───
         TPACommand tpaCmd = new TPACommand(this);
         setCmd("tpa", tpaCmd);
         setCmd("tpaccept", tpaCmd);
         setCmd("tpadeny", tpaCmd);
         setCmd("tpcancel", tpaCmd);
 
-        // Land
+        // ─── Land ───
         LandCommand landCmd = new LandCommand(this);
         setCmd("landinvite", landCmd);
         setCmd("landaccept", landCmd);
@@ -173,12 +194,12 @@ public class KZPlugin extends JavaPlugin {
         setCmd("deleteland", landCmd);
         setCmd("cekcapasitas", landCmd);
 
-        // Job & Reward
+        // ─── Job & Reward ───
         setCmd("job", new JobCommand(this));
         setCmd("daily", new DailyCommand(this));
         setCmd("weekly", new WeeklyCommand(this));
 
-        // Lobby & Info
+        // ─── Lobby & Info ───
         LobbyCommand lobbyCmd = new LobbyCommand(this);
         setCmd("lobby", lobbyCmd);
         setCmd("hub", lobbyCmd);
@@ -190,7 +211,7 @@ public class KZPlugin extends JavaPlugin {
         setCmd("website", lobbyCmd);
         setCmd("rules", lobbyCmd);
 
-        // Admin
+        // ─── Admin ───
         AdminCommand adminCmd = new AdminCommand(this);
         setCmd("setlobby", adminCmd);
         setCmd("setspawn", adminCmd);
@@ -202,54 +223,88 @@ public class KZPlugin extends JavaPlugin {
         setCmd("setrank", adminCmd);
         setCmd("maintenance", adminCmd);
         setCmd("announce", adminCmd);
+
+        // ─── Crate / Gacha System ───
+        CrateCommand crateCmd = new CrateCommand(this);
+        setCmd("gachacreate", crateCmd);
+        setCmd("gachadelete", crateCmd);
+        setCmd("gachalist", crateCmd);
+        setCmd("gachapreview", crateCmd);
     }
 
+    /**
+     * Helper: register command executor safely
+     * Logs warning if command not found in plugin.yml
+     */
     private void setCmd(String name, Object executor) {
         var cmd = getCommand(name);
         if (cmd != null) {
             cmd.setExecutor((org.bukkit.command.CommandExecutor) executor);
+            // Also set tab completer if executor implements it
+            if (executor instanceof org.bukkit.command.TabCompleter tabCompleter) {
+                cmd.setTabCompleter(tabCompleter);
+            }
         } else {
             getLogger().warning("[KZ] Command '/" + name + "' not found in plugin.yml!");
         }
     }
 
+    // ══════════════════════════════════
+    //  REGISTER LISTENERS
+    // ══════════════════════════════════
+
     private void registerListeners() {
         var pm = getServer().getPluginManager();
+
+        // Core listeners
         pm.registerEvents(new GUIListener(this), this);
         pm.registerEvents(new PlayerEventListener(this), this);
         pm.registerEvents(new BlockEventListener(this), this);
         pm.registerEvents(new EntityEventListener(this), this);
         pm.registerEvents(new SpawnerPlaceListener(this), this);
         pm.registerEvents(new SpawnerDropListener(this), this);
+
+        // Crate system listener
+        pm.registerEvents(new CrateListener(this), this);
     }
+
+    // ══════════════════════════════════
+    //  START SCHEDULED TASKS
+    // ══════════════════════════════════
 
     private void startTasks() {
         // Scoreboard + Nametag update - every 3 seconds (60 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
-                lobbySystem.updateAllScoreboards();
-                lobbySystem.updateAllNametags();
+                if (lobbySystem != null) {
+                    lobbySystem.updateAllScoreboards();
+                    lobbySystem.updateAllNametags();
+                }
             }
         }.runTaskTimer(this, 60L, 60L);
 
-        // Playtime tracker - every 1 minute
+        // Playtime tracker - every 1 minute (1200 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
-                lobbySystem.trackPlaytime();
+                if (lobbySystem != null) {
+                    lobbySystem.trackPlaytime();
+                }
             }
         }.runTaskTimer(this, 1200L, 1200L);
 
-        // ClearLag - every 10 minutes
+        // ClearLag - every 10 minutes (12000 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
-                lobbySystem.clearLag();
+                if (lobbySystem != null) {
+                    lobbySystem.clearLag();
+                }
             }
         }.runTaskTimer(this, 12000L, 12000L);
 
-        // Auction expire check - every 5 minutes
+        // Auction expire check - every 5 minutes (6000 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -257,43 +312,61 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Auto-save (non-economy systems) - every 5 minutes
-        // Economy autosave is handled by EconomyManager internally
+        // Auto-save all systems - every 5 minutes (6000 ticks)
+        // Note: Economy autosave is handled internally by EconomyManager
         new BukkitRunnable() {
             @Override
             public void run() {
-                islandSystem.saveAll();
-                landSystem.saveAll();
-                lobbySystem.saveData();
-                dailyRewardSystem.saveData();
-                weeklyRewardSystem.saveData();
+                if (islandSystem != null) islandSystem.saveAll();
+                if (landSystem != null) landSystem.saveAll();
+                if (lobbySystem != null) lobbySystem.saveData();
+                if (dailyRewardSystem != null) dailyRewardSystem.saveData();
+                if (weeklyRewardSystem != null) weeklyRewardSystem.saveData();
+                if (crateSystem != null) crateSystem.saveData();
                 getLogger().info("[KZ] Auto-save completed.");
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Lobby fireworks - every 3 minutes
+        // Lobby fireworks - every 3 minutes (3600 ticks)
         new BukkitRunnable() {
             @Override
             public void run() {
-                lobbySystem.spawnFireworks();
+                if (lobbySystem != null) {
+                    lobbySystem.spawnFireworks();
+                }
             }
         }.runTaskTimer(this, 3600L, 3600L);
     }
 
     // ══════════════════════════════════
-    //  Getters
+    //  GETTERS - All system accessors
     // ══════════════════════════════════
+
     public static KZPlugin getInstance() { return instance; }
+
     public DatabaseManager getDatabaseManager() { return databaseManager; }
+
     public EconomyManager getEconomyManager() { return economyManager; }
+
     public IslandSystem getIslandSystem() { return islandSystem; }
+
     public OneBlockSystem getOneBlockSystem() { return oneBlockSystem; }
+
     public LandSystem getLandSystem() { return landSystem; }
+
     public JobSystem getJobSystem() { return jobSystem; }
+
     public TPASystem getTpaSystem() { return tpaSystem; }
+
     public LobbySystem getLobbySystem() { return lobbySystem; }
+
     public ItemDatabase getItemDatabase() { return itemDatabase; }
+
     public DailyRewardSystem getDailyRewardSystem() { return dailyRewardSystem; }
+
     public WeeklyRewardSystem getWeeklyRewardSystem() { return weeklyRewardSystem; }
+
     public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; }
+
+    public CrateSystem getCrateSystem() { return crateSystem; }
 }
