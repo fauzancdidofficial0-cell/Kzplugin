@@ -220,17 +220,18 @@ public class KZPlugin extends JavaPlugin {
         setCmd("website", lobbyCmd);
         setCmd("rules", lobbyCmd);
 
-        // ─── Crate / Gacha ─── (DIPINDAH KE SINI, sebelum givekey dipanggil)
+        // ─── Crate / Gacha ───
         CrateCommand crateCmd = new CrateCommand(this);
         setCmd("gachacreate", crateCmd);
         setCmd("gachadelete", crateCmd);
         setCmd("gachalist", crateCmd);
         setCmd("gachapreview", crateCmd);
 
-        // ─── Menu (Bedrock + Java) ───
-        setCmd("menu", new MenuCommand(this));
+        // ─── Menu ───
+        MenuCommand menuCmd = new MenuCommand(this);
+        setCmd("menu", menuCmd);
+        setCmd("settppasar", menuCmd);
         setCmd("givekey", crateCmd);
-        setCmd("settppasar", new Menu command(this));
 
         // ─── Crate Key ───
         setCmd("createkey", new CreateKeyCommand(this));
@@ -278,6 +279,7 @@ public class KZPlugin extends JavaPlugin {
         pm.registerEvents(new SpawnerPlaceListener(this), this);
         pm.registerEvents(new SpawnerDropListener(this), this);
         pm.registerEvents(new CrateListener(this), this);
+        pm.registerEvents(new MenuListener(this), this);
 
         // NOTE: QuizSystem, AntiSpamSystem, CommandBlocker
         // register themselves as listeners in constructors
