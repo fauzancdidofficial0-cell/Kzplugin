@@ -31,6 +31,8 @@ public class KZPlugin extends JavaPlugin {
     private WeeklyRewardSystem weeklyRewardSystem;
     private SpawnerItemFactory spawnerItemFactory;
     private CrateSystem crateSystem;
+    private BedrockFormManager bedrockFormManager;
+    private ProxyMessageListener proxyMessageListener; // ← STORED as field
 
     // ══════════════════════════════════
     //  ENABLE
@@ -58,10 +60,13 @@ public class KZPlugin extends JavaPlugin {
 
         // ══════════════════════════════════
         //  2. Register BungeeCord Channel
+        //     Store listener as field so we
+        //     can call outgoing methods later
         // ══════════════════════════════════
+        proxyMessageListener = new ProxyMessageListener(this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord",
-                new ProxyMessageListener(this));
+                proxyMessageListener);
         getLogger().info("[KZ] BungeeCord plugin messaging channel registered.");
 
         // ══════════════════════════════════
@@ -79,6 +84,7 @@ public class KZPlugin extends JavaPlugin {
         weeklyRewardSystem = new WeeklyRewardSystem(this);
         spawnerItemFactory = new SpawnerItemFactory(this);
         crateSystem = new CrateSystem(this);
+        bedrockFormManager = new BedrockFormManager(this);
 
         // ══════════════════════════════════
         //  4. Register Commands
@@ -102,6 +108,7 @@ public class KZPlugin extends JavaPlugin {
         getLogger().info("  Database: Connected (" + databaseManager.getPoolStats() + ")");
         getLogger().info("  Items   : " + itemDatabase.getTotalItems() + " registered");
         getLogger().info("  Crates  : " + crateSystem.getAllCrates().size() + " loaded");
+        getLogger().info("  Bedrock : " + (bedrockFormManager.isFloodgateAvailable() ? "Forms enabled" : "Chat fallback"));
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
@@ -211,6 +218,9 @@ public class KZPlugin extends JavaPlugin {
         setCmd("website", lobbyCmd);
         setCmd("rules", lobbyCmd);
 
+        // ─── Menu (Bedrock + Java) ───
+        setCmd("menu", new MenuCommand(this));
+
         // ─── Admin ───
         AdminCommand adminCmd = new AdminCommand(this);
         setCmd("setlobby", adminCmd);
@@ -233,14 +243,12 @@ public class KZPlugin extends JavaPlugin {
     }
 
     /**
-     * Helper: register command executor safely
-     * Logs warning if command not found in plugin.yml
+     * Helper: register command executor + tab completer safely
      */
     private void setCmd(String name, Object executor) {
         var cmd = getCommand(name);
         if (cmd != null) {
             cmd.setExecutor((org.bukkit.command.CommandExecutor) executor);
-            // Also set tab completer if executor implements it
             if (executor instanceof org.bukkit.command.TabCompleter tabCompleter) {
                 cmd.setTabCompleter(tabCompleter);
             }
@@ -273,7 +281,7 @@ public class KZPlugin extends JavaPlugin {
     // ══════════════════════════════════
 
     private void startTasks() {
-        // Scoreboard + Nametag update - every 3 seconds (60 ticks)
+        // Scoreboard + Nametag update - every 3 seconds
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -284,27 +292,23 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 60L, 60L);
 
-        // Playtime tracker - every 1 minute (1200 ticks)
+        // Playtime tracker - every 1 minute
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (lobbySystem != null) {
-                    lobbySystem.trackPlaytime();
-                }
+                if (lobbySystem != null) lobbySystem.trackPlaytime();
             }
         }.runTaskTimer(this, 1200L, 1200L);
 
-        // ClearLag - every 10 minutes (12000 ticks)
+        // ClearLag - every 10 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (lobbySystem != null) {
-                    lobbySystem.clearLag();
-                }
+                if (lobbySystem != null) lobbySystem.clearLag();
             }
         }.runTaskTimer(this, 12000L, 12000L);
 
-        // Auction expire check - every 5 minutes (6000 ticks)
+        // Auction expire check - every 5 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -312,8 +316,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Auto-save all systems - every 5 minutes (6000 ticks)
-        // Note: Economy autosave is handled internally by EconomyManager
+        // Auto-save all systems - every 5 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -327,19 +330,32 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Lobby fireworks - every 3 minutes (3600 ticks)
+        // Lobby fireworks - every 3 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (lobbySystem != null) {
-                    lobbySystem.spawnFireworks();
-                }
+                if (lobbySystem != null) lobbySystem.spawnFireworks();
             }
         }.runTaskTimer(this, 3600L, 3600L);
+
+        // Request server name from proxy on first player join
+        // (BungeeCord channel needs at least 1 player online)
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!Bukkit.getOnlinePlayers().isEmpty() && proxyMessageListener != null
+                        && proxyMessageListener.getCachedServerName() == null) {
+                    Player any = Bukkit.getOnlinePlayers().iterator().next();
+                    proxyMessageListener.requestServerName(any, name ->
+                            getLogger().info("[KZ] Proxy confirmed server: " + name));
+                    this.cancel(); // Only need to do this once
+                }
+            }
+        }.runTaskTimer(this, 100L, 200L);
     }
 
     // ══════════════════════════════════
-    //  GETTERS - All system accessors
+    //  GETTERS
     // ══════════════════════════════════
 
     public static KZPlugin getInstance() { return instance; }
@@ -369,4 +385,8 @@ public class KZPlugin extends JavaPlugin {
     public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; }
 
     public CrateSystem getCrateSystem() { return crateSystem; }
+
+    public BedrockFormManager getBedrockFormManager() { return bedrockFormManager; }
+
+    public ProxyMessageListener getProxyMessageListener() { return proxyMessageListener; }
 }
