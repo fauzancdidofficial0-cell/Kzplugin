@@ -192,6 +192,11 @@ commands:
   gachapreview:
     description: Preview gacha crate rewards
     usage: /gachapreview [crateId]
+    createkey:
+    description: Create a custom crate key item
+    usage: /createkey <material> <colored_name>
+    permission: kzplugin.admin
+    aliases: [makekey]
 
   # ══════ JOB & REWARD ══════
   job:
