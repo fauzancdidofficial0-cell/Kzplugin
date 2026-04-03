@@ -35,6 +35,7 @@ public class KZPlugin extends JavaPlugin {
     private ProxyMessageListener proxyMessageListener;
     private QuizSystem quizSystem;
     private AntiSpamSystem antiSpamSystem;
+    private CommandBlocker commandBlocker;
 
     // ══════════════════════════════════
     //  ENABLE
@@ -85,8 +86,9 @@ public class KZPlugin extends JavaPlugin {
         spawnerItemFactory = new SpawnerItemFactory(this);
         crateSystem = new CrateSystem(this);
         bedrockFormManager = new BedrockFormManager(this);
-        quizSystem = new QuizSystem(this);           // ← NEW
-        antiSpamSystem = new AntiSpamSystem(this);   // ← NEW
+        quizSystem = new QuizSystem(this);
+        antiSpamSystem = new AntiSpamSystem(this);
+        commandBlocker = new CommandBlocker(this);   // ← LAST (needs EconomyManager)
 
         // ══════════════════════════════════
         //  4. Register Commands
@@ -104,15 +106,16 @@ public class KZPlugin extends JavaPlugin {
         startTasks();
 
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        getLogger().info("  KZ PLUGIN v2.0.0 - Enabled");
-        getLogger().info("  Mode    : Multi-Server (Velocity)");
-        getLogger().info("  Server  : " + getConfig().getString("server-name", "unknown"));
-        getLogger().info("  Database: Connected (" + databaseManager.getPoolStats() + ")");
-        getLogger().info("  Items   : " + itemDatabase.getTotalItems() + " registered");
-        getLogger().info("  Crates  : " + crateSystem.getAllCrates().size() + " loaded");
-        getLogger().info("  Bedrock : " + (bedrockFormManager.isFloodgateAvailable() ? "Forms" : "Fallback"));
-        getLogger().info("  Quiz    : Auto every " + getConfig().getInt("quiz.auto-interval-minutes", 15) + "min");
-        getLogger().info("  AntiSpam: Active");
+        getLogger().info("  KZ PLUGIN v2.0.0 - Enabled ✔");
+        getLogger().info("  Mode     : Multi-Server (Velocity)");
+        getLogger().info("  Server   : " + getConfig().getString("server-name", "unknown"));
+        getLogger().info("  Database : Connected (" + databaseManager.getPoolStats() + ")");
+        getLogger().info("  Items    : " + itemDatabase.getTotalItems() + " registered");
+        getLogger().info("  Crates   : " + crateSystem.getAllCrates().size() + " loaded");
+        getLogger().info("  Bedrock  : " + (bedrockFormManager.isFloodgateAvailable() ? "Forms" : "Fallback"));
+        getLogger().info("  Quiz     : Auto/" + getConfig().getInt("quiz.auto-interval-minutes", 15) + "min");
+        getLogger().info("  AntiSpam : Active");
+        getLogger().info("  CmdBlock : " + (commandBlocker.isEnabled() ? "Active" : "Disabled"));
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
@@ -124,8 +127,8 @@ public class KZPlugin extends JavaPlugin {
     public void onDisable() {
         if (economyManager != null) economyManager.shutdown();
         if (crateSystem != null) crateSystem.shutdown();
-        if (quizSystem != null) quizSystem.shutdown();       // ← NEW
-        if (antiSpamSystem != null) antiSpamSystem.shutdown(); // ← NEW
+        if (quizSystem != null) quizSystem.shutdown();
+        if (antiSpamSystem != null) antiSpamSystem.shutdown();
         if (islandSystem != null) islandSystem.saveAll();
         if (landSystem != null) landSystem.saveAll();
         if (lobbySystem != null) lobbySystem.saveData();
@@ -240,7 +243,7 @@ public class KZPlugin extends JavaPlugin {
         setCmd("gachalist", crateCmd);
         setCmd("gachapreview", crateCmd);
 
-        // ─── Quiz (Admin) ───
+        // ─── Quiz ───
         setCmd("quiz", new QuizCommand(this));
     }
 
@@ -271,8 +274,8 @@ public class KZPlugin extends JavaPlugin {
         pm.registerEvents(new SpawnerDropListener(this), this);
         pm.registerEvents(new CrateListener(this), this);
 
-        // NOTE: QuizSystem and AntiSpamSystem register themselves
-        // as listeners in their constructors
+        // NOTE: QuizSystem, AntiSpamSystem, CommandBlocker
+        // register themselves as listeners in constructors
     }
 
     // ══════════════════════════════════
@@ -374,4 +377,5 @@ public class KZPlugin extends JavaPlugin {
     public ProxyMessageListener getProxyMessageListener() { return proxyMessageListener; }
     public QuizSystem getQuizSystem() { return quizSystem; }
     public AntiSpamSystem getAntiSpamSystem() { return antiSpamSystem; }
+    public CommandBlocker getCommandBlocker() { return commandBlocker; }
 }
