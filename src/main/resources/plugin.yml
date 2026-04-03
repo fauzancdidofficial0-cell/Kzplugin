@@ -347,6 +347,13 @@ commands:
     description: Give crate key to a player
     usage: /givekey <player> <crateId> [amount]
     permission: kzplugin.admin
+    menu:
+    description: Buka menu teleport
+    usage: /menu
+  settppasar:
+    description: Set lokasi teleport pasar
+    usage: /settppasar
+    permission: kz.admin
 
 # ══════════════════════════════════════
 #  PERMISSIONS
