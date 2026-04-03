@@ -169,6 +169,23 @@ commands:
     aliases: [landinfo, landcap]
     permission: kzplugin.cmd.land
 
+    # ══════ GACHA CRATE ══════
+    gachacreate:
+    description: Create a gacha crate at your location
+    usage: /gachacreate <title> <desc1> <desc2> <color> <keyName>
+    permission: kzplugin.admin
+  gachadelete:
+    description: Delete the nearest gacha crate
+    usage: /gachadelete
+    permission: kzplugin.admin
+  gachalist:
+    description: List all gacha crates
+    usage: /gachalist
+    permission: kzplugin.admin
+  gachapreview:
+    description: Preview gacha crate rewards
+    usage: /gachapreview [crateId]
+
   # ══════ JOB & REWARD ══════
   job:
     description: Job system
