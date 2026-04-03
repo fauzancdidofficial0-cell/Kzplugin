@@ -32,7 +32,9 @@ public class KZPlugin extends JavaPlugin {
     private SpawnerItemFactory spawnerItemFactory;
     private CrateSystem crateSystem;
     private BedrockFormManager bedrockFormManager;
-    private ProxyMessageListener proxyMessageListener; // ← STORED as field
+    private ProxyMessageListener proxyMessageListener;
+    private QuizSystem quizSystem;
+    private AntiSpamSystem antiSpamSystem;
 
     // ══════════════════════════════════
     //  ENABLE
@@ -60,8 +62,6 @@ public class KZPlugin extends JavaPlugin {
 
         // ══════════════════════════════════
         //  2. Register BungeeCord Channel
-        //     Store listener as field so we
-        //     can call outgoing methods later
         // ══════════════════════════════════
         proxyMessageListener = new ProxyMessageListener(this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
@@ -85,6 +85,8 @@ public class KZPlugin extends JavaPlugin {
         spawnerItemFactory = new SpawnerItemFactory(this);
         crateSystem = new CrateSystem(this);
         bedrockFormManager = new BedrockFormManager(this);
+        quizSystem = new QuizSystem(this);           // ← NEW
+        antiSpamSystem = new AntiSpamSystem(this);   // ← NEW
 
         // ══════════════════════════════════
         //  4. Register Commands
@@ -108,7 +110,9 @@ public class KZPlugin extends JavaPlugin {
         getLogger().info("  Database: Connected (" + databaseManager.getPoolStats() + ")");
         getLogger().info("  Items   : " + itemDatabase.getTotalItems() + " registered");
         getLogger().info("  Crates  : " + crateSystem.getAllCrates().size() + " loaded");
-        getLogger().info("  Bedrock : " + (bedrockFormManager.isFloodgateAvailable() ? "Forms enabled" : "Chat fallback"));
+        getLogger().info("  Bedrock : " + (bedrockFormManager.isFloodgateAvailable() ? "Forms" : "Fallback"));
+        getLogger().info("  Quiz    : Auto every " + getConfig().getInt("quiz.auto-interval-minutes", 15) + "min");
+        getLogger().info("  AntiSpam: Active");
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
@@ -118,24 +122,19 @@ public class KZPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Economy: stop autosave + save all + clear cache
         if (economyManager != null) economyManager.shutdown();
-
-        // Crate: remove holograms + save data
         if (crateSystem != null) crateSystem.shutdown();
-
-        // Other systems save
+        if (quizSystem != null) quizSystem.shutdown();       // ← NEW
+        if (antiSpamSystem != null) antiSpamSystem.shutdown(); // ← NEW
         if (islandSystem != null) islandSystem.saveAll();
         if (landSystem != null) landSystem.saveAll();
         if (lobbySystem != null) lobbySystem.saveData();
         if (dailyRewardSystem != null) dailyRewardSystem.saveData();
         if (weeklyRewardSystem != null) weeklyRewardSystem.saveData();
 
-        // Unregister channels
         getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         getServer().getMessenger().unregisterIncomingPluginChannel(this);
 
-        // Close database last
         if (databaseManager != null) databaseManager.disconnect();
 
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -234,17 +233,17 @@ public class KZPlugin extends JavaPlugin {
         setCmd("maintenance", adminCmd);
         setCmd("announce", adminCmd);
 
-        // ─── Crate / Gacha System ───
+        // ─── Crate / Gacha ───
         CrateCommand crateCmd = new CrateCommand(this);
         setCmd("gachacreate", crateCmd);
         setCmd("gachadelete", crateCmd);
         setCmd("gachalist", crateCmd);
         setCmd("gachapreview", crateCmd);
+
+        // ─── Quiz (Admin) ───
+        setCmd("quiz", new QuizCommand(this));
     }
 
-    /**
-     * Helper: register command executor + tab completer safely
-     */
     private void setCmd(String name, Object executor) {
         var cmd = getCommand(name);
         if (cmd != null) {
@@ -264,16 +263,16 @@ public class KZPlugin extends JavaPlugin {
     private void registerListeners() {
         var pm = getServer().getPluginManager();
 
-        // Core listeners
         pm.registerEvents(new GUIListener(this), this);
         pm.registerEvents(new PlayerEventListener(this), this);
         pm.registerEvents(new BlockEventListener(this), this);
         pm.registerEvents(new EntityEventListener(this), this);
         pm.registerEvents(new SpawnerPlaceListener(this), this);
         pm.registerEvents(new SpawnerDropListener(this), this);
-
-        // Crate system listener
         pm.registerEvents(new CrateListener(this), this);
+
+        // NOTE: QuizSystem and AntiSpamSystem register themselves
+        // as listeners in their constructors
     }
 
     // ══════════════════════════════════
@@ -281,7 +280,7 @@ public class KZPlugin extends JavaPlugin {
     // ══════════════════════════════════
 
     private void startTasks() {
-        // Scoreboard + Nametag update - every 3 seconds
+        // Scoreboard + Nametag - every 3 seconds
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -292,7 +291,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 60L, 60L);
 
-        // Playtime tracker - every 1 minute
+        // Playtime - every 1 minute
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -308,7 +307,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 12000L, 12000L);
 
-        // Auction expire check - every 5 minutes
+        // Auction expire - every 5 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -316,7 +315,7 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Auto-save all systems - every 5 minutes
+        // Auto-save - every 5 minutes
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -338,17 +337,16 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 3600L, 3600L);
 
-        // Request server name from proxy on first player join
-        // (BungeeCord channel needs at least 1 player online)
+        // Request server name from proxy
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (!Bukkit.getOnlinePlayers().isEmpty() && proxyMessageListener != null
                         && proxyMessageListener.getCachedServerName() == null) {
-                    Player any = Bukkit.getOnlinePlayers().iterator().next();
+                    var any = Bukkit.getOnlinePlayers().iterator().next();
                     proxyMessageListener.requestServerName(any, name ->
-                            getLogger().info("[KZ] Proxy confirmed server: " + name));
-                    this.cancel(); // Only need to do this once
+                            getLogger().info("[KZ] Proxy confirmed: " + name));
+                    this.cancel();
                 }
             }
         }.runTaskTimer(this, 100L, 200L);
@@ -359,34 +357,21 @@ public class KZPlugin extends JavaPlugin {
     // ══════════════════════════════════
 
     public static KZPlugin getInstance() { return instance; }
-
     public DatabaseManager getDatabaseManager() { return databaseManager; }
-
     public EconomyManager getEconomyManager() { return economyManager; }
-
     public IslandSystem getIslandSystem() { return islandSystem; }
-
     public OneBlockSystem getOneBlockSystem() { return oneBlockSystem; }
-
     public LandSystem getLandSystem() { return landSystem; }
-
     public JobSystem getJobSystem() { return jobSystem; }
-
     public TPASystem getTpaSystem() { return tpaSystem; }
-
     public LobbySystem getLobbySystem() { return lobbySystem; }
-
     public ItemDatabase getItemDatabase() { return itemDatabase; }
-
     public DailyRewardSystem getDailyRewardSystem() { return dailyRewardSystem; }
-
     public WeeklyRewardSystem getWeeklyRewardSystem() { return weeklyRewardSystem; }
-
     public SpawnerItemFactory getSpawnerItemFactory() { return spawnerItemFactory; }
-
     public CrateSystem getCrateSystem() { return crateSystem; }
-
     public BedrockFormManager getBedrockFormManager() { return bedrockFormManager; }
-
     public ProxyMessageListener getProxyMessageListener() { return proxyMessageListener; }
+    public QuizSystem getQuizSystem() { return quizSystem; }
+    public AntiSpamSystem getAntiSpamSystem() { return antiSpamSystem; }
 }
