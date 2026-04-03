@@ -185,6 +185,34 @@ clearlag:
   interval-ticks: 12000
   warning-seconds: 30
 
+# ============================================================
+# QUIZ & AUTO SPAM
+# ============================================================
+
+# Quiz System
+quiz:
+  auto-interval-minutes: 15    # Auto quiz setiap 15 menit
+  min-players: 2               # Minimal player untuk auto quiz
+  math-timer-seconds: 300      # 5 menit untuk math quiz
+  speed-timer-seconds: 120     # 2 menit untuk speed quiz
+  fill-timer-seconds: 180      # 3 menit untuk fill quiz
+  math-prize: 500.0
+  speed-prize: 300.0
+  fill-prize: 400.0
+
+# Anti-Spam System
+antispam:
+  max-identical: 4             # 4 pesan sama = spam
+  identical-window-seconds: 10 # dalam 10 detik
+  max-rapid: 6                 # 6 pesan apapun
+  rapid-window-seconds: 5      # dalam 5 detik
+  max-warnings: 3              # 3 warning = kick
+  warning-decay-minutes: 30    # warning reset setelah 30 menit
+  mute-seconds: 10             # mute 10 detik setelah spam
+
+# Floodgate prefix (for Bedrock detection fallback)
+floodgate-prefix: "."
+
 # ══════════════════════════════════════
 #  AUTO SAVE
 # ══════════════════════════════════════
