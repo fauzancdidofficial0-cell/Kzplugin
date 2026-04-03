@@ -89,7 +89,7 @@ public class KZPlugin extends JavaPlugin {
         quizSystem = new QuizSystem(this);
         antiSpamSystem = new AntiSpamSystem(this);
         commandBlocker = new CommandBlocker(this);   // ← LAST (needs EconomyManager)
-        
+
         // ══════════════════════════════════
         //  4. Register Commands
         // ══════════════════════════════════
@@ -220,11 +220,18 @@ public class KZPlugin extends JavaPlugin {
         setCmd("website", lobbyCmd);
         setCmd("rules", lobbyCmd);
 
+        // ─── Crate / Gacha ─── (DIPINDAH KE SINI, sebelum givekey dipanggil)
+        CrateCommand crateCmd = new CrateCommand(this);
+        setCmd("gachacreate", crateCmd);
+        setCmd("gachadelete", crateCmd);
+        setCmd("gachalist", crateCmd);
+        setCmd("gachapreview", crateCmd);
+
         // ─── Menu (Bedrock + Java) ───
         setCmd("menu", new MenuCommand(this));
         setCmd("givekey", crateCmd);
 
-        // ---- Crate ----
+        // ─── Crate Key ───
         setCmd("createkey", new CreateKeyCommand(this));
 
         // ─── Admin ───
@@ -239,13 +246,6 @@ public class KZPlugin extends JavaPlugin {
         setCmd("setrank", adminCmd);
         setCmd("maintenance", adminCmd);
         setCmd("announce", adminCmd);
-
-        // ─── Crate / Gacha ───
-        CrateCommand crateCmd = new CrateCommand(this);
-        setCmd("gachacreate", crateCmd);
-        setCmd("gachadelete", crateCmd);
-        setCmd("gachalist", crateCmd);
-        setCmd("gachapreview", crateCmd);
 
         // ─── Quiz ───
         setCmd("quiz", new QuizCommand(this));
