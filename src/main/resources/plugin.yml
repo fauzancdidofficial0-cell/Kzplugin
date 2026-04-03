@@ -9,6 +9,13 @@ authors: [KZTeam]
 #  COMMANDS
 # ══════════════════════════════════════
 commands:
+   # ══════ QUIZ ══════
+  quiz:
+    description: Admin quiz control
+    usage: /quiz <start|stop|status> [type]
+    permission: kzplugin.admin
+    aliases: [quizadmin]
+    
   # ══════ SHOP & ECONOMY ══════
   shop:
     description: Open Shop GUI
