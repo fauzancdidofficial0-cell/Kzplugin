@@ -16,8 +16,8 @@ import java.sql.Statement;
  * DatabaseManager - Mengelola koneksi MySQL via HikariCP Connection Pool
  *
  * Fitur:
- *   - HikariCP connection pool ke PlanetScale MySQL
- *   - SSL encryption (REQUIRED mode, cocok untuk PlanetScale)
+ *   - HikariCP connection pool ke Railway MySQL
+ *   - allowPublicKeyRetrieval=true untuk MySQL 8.0+ compatibility
  *   - keepaliveTime agar koneksi tidak putus saat idle
  *   - Retry mechanism 3x saat koneksi gagal
  *   - Auto-create semua tabel yang dibutuhkan plugin
@@ -38,8 +38,8 @@ public class DatabaseManager {
     private static final long RETRY_DELAY_MS     = 5_000L;
 
     /**
-     * Maximum pool size - sesuaikan dengan PlanetScale free tier limit.
-     * 4 server × 5 pool = 20 connections total (aman di bawah 1000 limit)
+     * Maximum pool size.
+     * 4 server × 5 pool = 20 connections total
      */
     private static final int  MAX_POOL_SIZE      = 5;
 
@@ -52,12 +52,12 @@ public class DatabaseManager {
     /** Koneksi idle dihapus setelah 10 menit */
     private static final long IDLE_TIMEOUT        = 600_000L;
 
-    /** Koneksi maksimal hidup 30 menit (PlanetScale limit ~1 jam) */
+    /** Koneksi maksimal hidup 30 menit */
     private static final long MAX_LIFETIME        = 1_800_000L;
 
     /**
      * Keepalive ping setiap 60 detik.
-     * KRUSIAL untuk PlanetScale yang memutus koneksi idle!
+     * KRUSIAL untuk Railway yang memutus koneksi idle!
      * Harus lebih kecil dari IDLE_TIMEOUT.
      */
     private static final long KEEPALIVE_TIME      = 60_000L;
@@ -65,7 +65,6 @@ public class DatabaseManager {
     /**
      * Leak detection threshold: 60 detik.
      * Jika Connection tidak ditutup dalam 60 detik, HikariCP log WARNING.
-     * Membantu mendeteksi connection leak selama development.
      */
     private static final long LEAK_DETECTION_MS   = 60_000L;
 
@@ -95,19 +94,19 @@ public class DatabaseManager {
     // ══════════════════════════════════════════════════════════════
 
     /**
-     * Menghubungkan ke database PlanetScale dengan retry mechanism.
+     * Menghubungkan ke database Railway MySQL dengan retry mechanism.
      * Dipanggil dari KZPlugin.onEnable()
      *
      * @return true jika berhasil connect, false jika gagal setelah semua retry
      */
     public boolean connect() {
         // ── Ambil konfigurasi dari config.yml ──────────────────────
-        String  host = plugin.getConfig().getString("database.host", "localhost");
-        int     port = plugin.getConfig().getInt("database.port", 3306);
-        String  name = plugin.getConfig().getString("database.name", "kzplugin");
-        String  user = plugin.getConfig().getString("database.username", "root");
-        String  pass = plugin.getConfig().getString("database.password", "");
-        boolean ssl  = plugin.getConfig().getBoolean("database.ssl", true);
+        String  host  = plugin.getConfig().getString("database.host",     "localhost");
+        int     port  = plugin.getConfig().getInt("database.port",        3306);
+        String  name  = plugin.getConfig().getString("database.name",     "kzplugin");
+        String  user  = plugin.getConfig().getString("database.username", "root");
+        String  pass  = plugin.getConfig().getString("database.password", "");
+        boolean ssl   = plugin.getConfig().getBoolean("database.ssl",     false);
 
         // ── Validasi config tidak kosong ───────────────────────────
         if (host == null || host.isBlank()) {
@@ -121,19 +120,27 @@ public class DatabaseManager {
 
         // ── Build JDBC URL ─────────────────────────────────────────
         /*
-         * SSL Mode explanation:
-         *   REQUIRED  → Encrypt connection, don't verify server certificate
-         *               Best for PlanetScale (no local CA cert needed)
-         *   DISABLED  → No SSL (only for local development)
+         * FIX: allowPublicKeyRetrieval=true WAJIB untuk MySQL 8.0+
          *
-         * NOTE: autoReconnect is NOT included because:
-         *   - It is deprecated by MySQL Connector/J
-         *   - HikariCP handles reconnection internally via pool management
-         *   - Using autoReconnect can cause silent data corruption
+         * MySQL 8.0+ mengubah default auth plugin:
+         *   mysql_native_password → caching_sha2_password
+         *
+         * caching_sha2_password memerlukan salah satu:
+         *   1. SSL connection, ATAU
+         *   2. allowPublicKeyRetrieval=true
+         *
+         * Karena Railway tidak wajib SSL (ssl: false),
+         * maka allowPublicKeyRetrieval=true HARUS ada di JDBC URL.
+         *
+         * NOTE: autoReconnect TIDAK dipakai karena:
+         *   - Deprecated oleh MySQL Connector/J
+         *   - HikariCP handle reconnection sendiri via pool management
+         *   - autoReconnect bisa sebabkan silent data corruption
          */
         String jdbcUrl = String.format(
                 "jdbc:mysql://%s:%d/%s"
-                        + "?useSSL=%b"
+                        + "?allowPublicKeyRetrieval=true"   // ✅ FIX: MySQL 8.0+ auth
+                        + "&useSSL=%b"
                         + "&requireSSL=%b"
                         + "&sslMode=%s"
                         + "&characterEncoding=utf8"
@@ -144,6 +151,10 @@ public class DatabaseManager {
                 ssl,
                 ssl ? "REQUIRED" : "DISABLED"
         );
+
+        // ── Log JDBC URL (tanpa password) untuk debugging ──────────
+        plugin.getLogger().info("[Database] Connecting to: jdbc:mysql://" +
+                host + ":" + port + "/" + name);
 
         // ── Build HikariConfig ─────────────────────────────────────
         HikariConfig hikariConfig = buildHikariConfig(jdbcUrl, user, pass);
@@ -313,7 +324,7 @@ public class DatabaseManager {
 
     /**
      * Membangun HikariConfig dengan semua pengaturan optimal
-     * untuk PlanetScale / cloud MySQL.
+     * untuk Railway MySQL.
      */
     private HikariConfig buildHikariConfig(String jdbcUrl, String user, String pass) {
         HikariConfig config = new HikariConfig();
@@ -356,10 +367,10 @@ public class DatabaseManager {
          */
 
         // ── MySQL PreparedStatement cache optimization ─────────────
-        config.addDataSourceProperty("cachePrepStmts",          "true");
-        config.addDataSourceProperty("prepStmtCacheSize",       "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit",   "2048");
-        config.addDataSourceProperty("useServerPrepStmts",      "true");
+        config.addDataSourceProperty("cachePrepStmts",           "true");
+        config.addDataSourceProperty("prepStmtCacheSize",        "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit",    "2048");
+        config.addDataSourceProperty("useServerPrepStmts",       "true");
 
         // ── MySQL additional optimization ──────────────────────────
         config.addDataSourceProperty("useLocalSessionState",     "true");
