@@ -5,17 +5,14 @@ api-version: "1.20"
 description: KZ Complete Multi-Server Plugin System
 authors: [KZTeam]
 
-# ══════════════════════════════════════
-#  COMMANDS
-# ══════════════════════════════════════
 commands:
-   # ══════ QUIZ ══════
+  # ══════ QUIZ ══════
   quiz:
     description: Admin quiz control
     usage: /quiz <start|stop|status> [type]
     permission: kzplugin.admin
     aliases: [quizadmin]
-    
+
   # ══════ SHOP & ECONOMY ══════
   shop:
     description: Open Shop GUI
@@ -176,8 +173,9 @@ commands:
     aliases: [landinfo, landcap]
     permission: kzplugin.cmd.land
 
-    # ══════ GACHA CRATE ══════
-    gachacreate:
+  # ══════ GACHA CRATE ══════
+  # ✅ FIX: Hapus indentasi berlebih, pisah createkey jadi command sendiri
+  gachacreate:
     description: Create a gacha crate at your location
     usage: /gachacreate <title> <desc1> <desc2> <color> <keyName>
     permission: kzplugin.admin
@@ -192,7 +190,8 @@ commands:
   gachapreview:
     description: Preview gacha crate rewards
     usage: /gachapreview [crateId]
-    createkey:
+    permission: kzplugin.admin
+  createkey:
     description: Create a custom crate key item
     usage: /createkey <material> <colored_name>
     permission: kzplugin.admin
@@ -347,7 +346,8 @@ commands:
     description: Give crate key to a player
     usage: /givekey <player> <crateId> [amount]
     permission: kzplugin.admin
-    menu:
+  # ✅ FIX: menu & settppasar dipindah keluar dari givekey
+  menu:
     description: Buka menu teleport
     usage: /menu
   settppasar:
@@ -359,12 +359,9 @@ commands:
 #  PERMISSIONS
 # ══════════════════════════════════════
 permissions:
-  # ── Base ──
   kzplugin.admin:
     description: Full admin access
     default: op
-
-  # ── Member Commands (given by LobbySystem) ──
   kzplugin.cmd.help:
     description: Use /help
     default: false
@@ -428,8 +425,6 @@ permissions:
   kzplugin.cmd.cf:
     description: Use /cf coinflip
     default: false
-
-  # ── Rank-Locked (given by LobbySystem based on rank) ──
   kzplugin.cmd.nick:
     description: Use /nick (Iron+)
     default: false
@@ -457,8 +452,6 @@ permissions:
   kzplugin.cmd.god:
     description: Use /god (Ethereal)
     default: false
-
-  # ── Rank Nodes (for external plugin compat) ──
   kzplugin.rank.iron:
     description: Iron rank
     default: false
