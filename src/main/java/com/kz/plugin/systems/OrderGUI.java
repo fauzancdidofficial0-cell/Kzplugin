@@ -14,7 +14,7 @@ import java.util.*;
 
 public class OrderGUI {
 
-    private final KZPlugin plugin;
+    private final KZPlugin            plugin;
     private final AdvancedOrderSystem orderSystem;
 
     public OrderGUI(KZPlugin plugin, AdvancedOrderSystem orderSystem) {
@@ -30,12 +30,12 @@ public class OrderGUI {
         Inventory inv = Bukkit.createInventory(null, 54,
                 "§8§l[ §b§lORDER MARKET §8§l]");
 
-        List<BuyOrder> orders = orderSystem.getFilteredOrders(player.getUniqueId());
-        int totalPages = Math.max(1, (int) Math.ceil(orders.size() / 45.0));
+        List<BuyOrder> orders    = orderSystem.getFilteredOrders(player.getUniqueId());
+        int            totalPages = Math.max(1, (int) Math.ceil(orders.size() / 45.0));
         page = Math.max(0, Math.min(page, totalPages - 1));
         orderSystem.setPage(player.getUniqueId(), page);
 
-        // Slot 0-44: Order items
+        // ── Slot 0-44: Order items ─────────────────────────────────
         int start = page * 45;
         int end   = Math.min(start + 45, orders.size());
         for (int i = start; i < end; i++) {
@@ -44,15 +44,13 @@ public class OrderGUI {
 
         // Fill empty slot 0-44
         for (int i = 0; i < 45; i++) {
-            if (inv.getItem(i) == null) {
+            if (inv.getItem(i) == null)
                 inv.setItem(i, glass(Material.GRAY_STAINED_GLASS_PANE, " "));
-            }
         }
 
-        // Bottom bar
-        for (int i = 45; i < 54; i++) {
+        // ── Bottom bar ─────────────────────────────────────────────
+        for (int i = 45; i < 54; i++)
             inv.setItem(i, glass(Material.BLACK_STAINED_GLASS_PANE, " "));
-        }
 
         // Slot 46: Filter
         Category cat = orderSystem.getCategory(player.getUniqueId());
@@ -72,8 +70,8 @@ public class OrderGUI {
         inv.setItem(47, item(Material.COMPASS, "§e§lSORT", List.of(
                 "§7Current: §b" + sort.name().replace("_", " "), "",
                 (sort == SortType.RECENTLY_LISTED ? "§a▶ " : "§8  ") + "Recently Listed",
-                (sort == SortType.LOWER_PAID      ? "§a▶ " : "§8  ") + "Lower Price",
-                (sort == SortType.HIGHER_PAID     ? "§a▶ " : "§8  ") + "Higher Price",
+                (sort == SortType.LOWER_PAID      ? "§a▶ " : "§8  ") + "Lower Price/ea",
+                (sort == SortType.HIGHER_PAID     ? "§a▶ " : "§8  ") + "Higher Price/ea",
                 "", "§eClick to cycle"
         )));
 
@@ -94,7 +92,7 @@ public class OrderGUI {
                 "§7Type item name in chat"
         )));
 
-        // Slot 50: Clear search
+        // Slot 50: Clear search (hanya jika ada search)
         if (!search.isBlank()) {
             inv.setItem(50, item(Material.BARRIER, "§c§lCLEAR SEARCH", List.of(
                     "§7Click to clear search filter"
@@ -142,6 +140,7 @@ public class OrderGUI {
         // Slot 0: Buat order baru
         inv.setItem(0, item(Material.WRITABLE_BOOK, "§a§l+ CREATE ORDER", List.of(
                 "§7Create a new buy order.",
+                "§7Fixed amount or unlimited.",
                 "§7Funds held in escrow.",
                 "", "§eClick to start"
         )));
@@ -153,9 +152,8 @@ public class OrderGUI {
 
         // Fill empty
         for (int i = 0; i < size; i++) {
-            if (inv.getItem(i) == null) {
+            if (inv.getItem(i) == null)
                 inv.setItem(i, glass(Material.GRAY_STAINED_GLASS_PANE, " "));
-            }
         }
 
         // Back button (last slot)
@@ -183,10 +181,21 @@ public class OrderGUI {
             player.sendMessage("§cYou cannot supply your own order."); return;
         }
 
+        // Label amount berbeda untuk unlimited
+        String needLabel = order.unlimited
+                ? "§eUNLIMITED ♾ §8(budget: §a"
+                    + plugin.getLobbySystem().formatCoins(order.priceRemaining()) + "§8)"
+                : "§c" + order.amountRemaining() + " §8/ §7" + order.amountNeeded;
+
+        // Estimasi item yang bisa diterima dengan budget tersisa
+        String canAcceptLabel = order.unlimited
+                ? "§f~" + (long) Math.floor(order.priceRemaining() / order.pricePerItem) + " §7items"
+                : "§f" + order.amountRemaining() + " §7items";
+
         Inventory inv = Bukkit.createInventory(null, 9,
                 "§8Supply §b#" + orderId + " §8[" + order.displayName + "]");
 
-        // Slot 0-6: Drop zone item
+        // Slot 0-6: Drop zone
         for (int i = 0; i < 7; i++) {
             inv.setItem(i, glass(Material.WHITE_STAINED_GLASS_PANE,
                     "§7Drop §f" + order.displayName + " §7here"));
@@ -194,10 +203,12 @@ public class OrderGUI {
 
         // Slot 7: Info
         inv.setItem(7, item(new ItemStack(order.material), "§f§lORDER INFO", List.of(
-                "§7Item    : §f" + order.displayName,
-                "§7Need    : §c" + order.amountRemaining() + " §8/ §7" + order.amountNeeded,
-                "§7Pay/ea  : §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem),
-                "§7Escrow  : §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
+                "§7Item      : §f" + order.displayName,
+                "§7Type      : " + (order.unlimited ? "§eUnlimited ♾" : "§fFixed"),
+                "§7Need      : " + needLabel,
+                "§7Can take  : " + canAcceptLabel,
+                "§7Pay/ea    : §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem),
+                "§7Budget    : §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
                 "",
                 "§7✔ Partial delivery supported",
                 "§7✔ Paid proportionally"
@@ -205,8 +216,8 @@ public class OrderGUI {
 
         // Slot 8: Confirm
         inv.setItem(8, item(Material.LIME_CONCRETE, "§a§lCONFIRM SUPPLY", List.of(
-                "§7Deliver items in slots 0-6.",
-                "§7Payment is automatic.",
+                "§7Items in slots 0-6 will be",
+                "§7delivered to buyer stash.",
                 "",
                 "§7Rate: §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem) + " §7/ item",
                 "", "§eClick to confirm"
@@ -232,17 +243,16 @@ public class OrderGUI {
         Inventory inv = Bukkit.createInventory(null, 27,
                 "§8Stash §b#" + orderId + " §8[" + order.displayName + "]");
 
-        // Slot 0-17: Preview stash items (read-only display)
+        // Slot 0-17: Preview stash (read-only)
         int slot = 0;
         for (ItemStack stashItem : order.stash) {
             if (slot >= 18 || stashItem == null) break;
-            // Clone untuk display saja, tidak bisa diambil manual
             ItemStack display = stashItem.clone();
             ItemMeta  meta    = display.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName("§a" + stashItem.getAmount() + "x "
-                        + orderSystem.formatMaterial(stashItem.getType()));
-                meta.setLore(List.of("§7Use §bCollect All §7button below"));
+                meta.setDisplayName("§a" + stashItem.getAmount()
+                        + "x " + orderSystem.formatMaterial(stashItem.getType()));
+                meta.setLore(List.of("§7Use §bCollect All §7to retrieve"));
                 display.setItemMeta(meta);
             }
             inv.setItem(slot, display);
@@ -250,25 +260,30 @@ public class OrderGUI {
         }
 
         // Fill sisa slot 0-17
-        for (int i = slot; i < 18; i++) {
+        for (int i = slot; i < 18; i++)
             inv.setItem(i, glass(Material.GRAY_STAINED_GLASS_PANE, " "));
-        }
 
         // Bottom bar slot 18-26
-        for (int i = 18; i < 27; i++) {
+        for (int i = 18; i < 27; i++)
             inv.setItem(i, glass(Material.BLACK_STAINED_GLASS_PANE, " "));
-        }
 
-        int stashTotal  = orderSystem.getStashTotal(order);
-        boolean hasItems = stashTotal > 0;
+        int     stashTotal = orderSystem.getStashTotal(order);
+        boolean hasItems   = stashTotal > 0;
 
         // Slot 18: Order info
+        String progLine = order.unlimited
+                ? "§7Budget left: §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining())
+                : buildProgressBar(order.fillPercent(), 15);
+
         inv.setItem(18, item(new ItemStack(order.material), "§f§lORDER INFO", List.of(
                 "§7Order  : §b#" + order.id,
                 "§7Item   : §f" + order.displayName,
-                "§7Filled : §f" + order.amountFilled + "§7/§f" + order.amountNeeded,
-                "§7Prog   : " + buildProgressBar(order.fillPercent(), 15),
-                "§7Status : " + (order.completed ? "§a✔ Completed" : "§e⏳ In Progress")
+                "§7Type   : " + (order.unlimited ? "§eUnlimited ♾" : "§fFixed"),
+                "§7Filled : §f" + order.amountFilled
+                        + (order.unlimited ? "" : "§7/§f" + order.amountNeeded),
+                "§7Pay/ea : §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem),
+                "§7        " + progLine,
+                "§7Status : " + (order.completed ? "§a✔ Completed" : "§e⏳ Active")
         )));
 
         // Slot 22: Collect All
@@ -277,23 +292,24 @@ public class OrderGUI {
                 hasItems ? "§a§lCOLLECT ALL" : "§c§lSTASH EMPTY",
                 hasItems
                         ? List.of(
-                        "§7Move all items to inventory.",
-                        "§7Items: §a" + stashTotal,
-                        "", "§eClick to collect"
-                )
+                            "§7Move all items to inventory.",
+                            "§7Items in stash: §a" + stashTotal,
+                            "", "§eClick to collect"
+                        )
                         : List.of(
-                        "§7No items yet.",
-                        "§7Wait for suppliers."
-                )
+                            "§7No items yet.",
+                            "§7Wait for suppliers."
+                        )
         ));
 
-        // Slot 24: Cancel order (hanya jika belum selesai)
+        // Slot 24: Cancel order
         if (!order.completed) {
             inv.setItem(24, item(Material.TNT, "§c§lCANCEL ORDER", List.of(
-                    "§7Cancel this buy order.",
-                    "§7Unused escrow refunded.",
+                    "§7Cancel this order.",
+                    "§7Remaining escrow refunded.",
                     "",
-                    "§7Refund: §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
+                    "§7Refund: §a"
+                            + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
                     "",
                     "§c§lRight-Click to cancel"
             )));
@@ -313,19 +329,33 @@ public class OrderGUI {
     // ════════════════════════════════════════════════════════════════
 
     private ItemStack buildOrderItem(BuyOrder order) {
-        ItemStack base = new ItemStack(order.material);
-        int pct = order.fillPercent();
-        String color = pct >= 100 ? "§a" : pct > 0 ? "§e" : "§c";
+        ItemStack base  = new ItemStack(order.material);
+        int       pct   = order.fillPercent();
+
+        // Warna: unlimited = kuning, filled = hijau, partial = kuning, kosong = merah
+        String color = order.unlimited ? "§e" : pct >= 100 ? "§a" : pct > 0 ? "§e" : "§c";
+
+        // Label jumlah
+        String needLabel = order.unlimited
+                ? "§eUNLIMITED ♾"
+                : "§f" + order.amountRemaining() + " §8/ §7" + order.amountNeeded;
+
+        // Progress line
+        String progLine = order.unlimited
+                ? "§7Budget: §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining())
+                        + " §7remaining"
+                : " " + buildProgressBar(pct, 18) + " §f" + pct + "%";
 
         return item(base, color + "§l" + order.displayName, List.of(
                 "§8#" + order.id + " §8| §7By: §f" + order.buyerName,
+                "§7Type: " + (order.unlimited ? "§eUnlimited ♾" : "§fFixed Amount"),
                 "",
-                "§7Need    : §f" + order.amountRemaining() + " §8/ §7" + order.amountNeeded,
+                "§7Need    : " + needLabel,
                 "§7Pay/ea  : §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem),
-                "§7Escrow  : §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
+                "§7Budget  : §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
                 "",
                 "§7Progress:",
-                " " + buildProgressBar(pct, 18) + " §f" + pct + "%",
+                progLine,
                 "",
                 "§7Category: §b" + order.category,
                 "",
@@ -336,21 +366,30 @@ public class OrderGUI {
     private ItemStack buildMyOrderItem(BuyOrder order) {
         ItemStack base  = new ItemStack(order.material);
         int       pct   = order.fillPercent();
-        String    color = pct >= 100 ? "§a" : pct > 0 ? "§e" : "§c";
+        String    color = order.unlimited ? "§e"
+                : pct >= 100 ? "§a" : pct > 0 ? "§e" : "§c";
         int       stash = orderSystem.getStashTotal(order);
+
+        String typeLabel = order.unlimited
+                ? "§eUNLIMITED ♾"
+                : "§f" + order.amountNeeded;
+
+        String progLine = order.unlimited
+                ? " §7Budget: §a"
+                    + plugin.getLobbySystem().formatCoins(order.priceRemaining())
+                    + " §7left"
+                : " " + buildProgressBar(pct, 18) + " §f" + pct + "%";
 
         List<String> lore = new ArrayList<>(List.of(
                 "§8Order #" + order.id,
-                "§7Status : " + (order.completed ? "§a✔ Completed" : "§e⏳ In Progress"),
+                "§7Type   : " + (order.unlimited ? "§eUnlimited ♾" : "§fFixed"),
+                "§7Status : " + (order.completed ? "§a✔ Completed" : "§e⏳ Active"),
                 "",
-                "§7Ordered : §f" + order.amountNeeded,
-                "§7Filled  : §f" + order.amountFilled,
-                "§7Pending : §c" + order.amountRemaining(),
+                "§7Amount : " + typeLabel,
+                "§7Filled : §f" + order.amountFilled,
+                "§7Pay/ea : §a" + plugin.getLobbySystem().formatCoins(order.pricePerItem),
                 "",
-                " " + buildProgressBar(pct, 18) + " §f" + pct + "%",
-                "",
-                "§7Escrow  : §a" + plugin.getLobbySystem().formatCoins(order.priceRemaining()),
-                "§7Paid out: §a" + plugin.getLobbySystem().formatCoins(order.paidOut)
+                progLine
         ));
 
         if (stash > 0) {
@@ -365,7 +404,7 @@ public class OrderGUI {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  UTILITIES
+    //  UTILITY BUILDERS
     // ════════════════════════════════════════════════════════════════
 
     public ItemStack item(Material mat, String name, List<String> lore) {
@@ -393,8 +432,8 @@ public class OrderGUI {
     }
 
     private String buildProgressBar(int percent, int length) {
-        int filled = (int)((Math.min(percent, 100) / 100.0) * length);
-        String color = percent >= 100 ? "§a" : percent >= 50 ? "§e" : "§c";
+        int    filled = (int)((Math.min(percent, 100) / 100.0) * length);
+        String color  = percent >= 100 ? "§a" : percent >= 50 ? "§e" : "§c";
         return color + "█".repeat(filled) + "§8" + "░".repeat(length - filled);
     }
 }
