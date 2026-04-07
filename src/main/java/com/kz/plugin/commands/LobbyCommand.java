@@ -4,6 +4,7 @@
 package com.kz.plugin.commands;
 
 import com.kz.plugin.KZPlugin;
+import com.kz.plugin.systems.LobbySystem;
 import com.kz.plugin.utils.ServerUtils;
 import org.bukkit.*;
 import org.bukkit.command.*;
@@ -90,7 +91,8 @@ public class LobbyCommand implements CommandExecutor {
     // ══════════════════════════════════════
 
     private void handleFly(Player player) {
-        if (!player.hasPermission("kzplugin.cmd.fly") && !player.hasPermission("kzplugin.admin")) {
+        if (!player.hasPermission("kzplugin.cmd.fly")
+                && !player.hasPermission("kzplugin.admin")) {
             sendMsg(player, "§cYou need §eValiant§c+ rank to use §b/fly§c.");
             playSound(player, Sound.ENTITY_VILLAGER_NO);
             return;
