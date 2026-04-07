@@ -51,6 +51,14 @@ commands:
     usage: /cf <amount>
     aliases: [coinflip]
     permission: kzplugin.cmd.cf
+  order:
+    description: Open Order Market (Global Buy Orders)
+    usage: /order
+    aliases: [buyorder, orders]
+  myorders:
+    description: View & manage your buy orders
+    usage: /myorders
+    aliases: [orderlist, mystash]
 
   # ══════ ISLAND SYSTEM ══════
   createisland:
