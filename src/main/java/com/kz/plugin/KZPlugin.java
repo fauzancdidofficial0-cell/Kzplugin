@@ -35,7 +35,7 @@ public class KZPlugin extends JavaPlugin {
     private ProxyMessageListener proxyMessageListener;
     private QuizSystem           quizSystem;
     private AntiSpamSystem       antiSpamSystem;
-    private CommandBlocker       commandBlocker;
+    // ✅ HAPUS: private CommandBlocker commandBlocker;
 
     // ── Order System ──────────────────
     private AdvancedOrderSystem  orderSystem;
@@ -77,24 +77,24 @@ public class KZPlugin extends JavaPlugin {
         // ══════════════════════════════════
         //  3. Initialize Systems
         // ══════════════════════════════════
-        itemDatabase      = new ItemDatabase();
-        economyManager    = new EconomyManager(this, databaseManager);
-        islandSystem      = new IslandSystem(this);
-        oneBlockSystem    = new OneBlockSystem(this);
-        landSystem        = new LandSystem(this);
-        jobSystem         = new JobSystem(this);
-        tpaSystem         = new TPASystem(this);
-        lobbySystem       = new LobbySystem(this);
-        dailyRewardSystem = new DailyRewardSystem(this);
-        weeklyRewardSystem= new WeeklyRewardSystem(this);
-        spawnerItemFactory= new SpawnerItemFactory(this);
-        crateSystem       = new CrateSystem(this);
-        bedrockFormManager= new BedrockFormManager(this);
-        quizSystem        = new QuizSystem(this);
-        antiSpamSystem    = new AntiSpamSystem(this);
-        commandBlocker    = new CommandBlocker(this);
+        itemDatabase       = new ItemDatabase();
+        economyManager     = new EconomyManager(this, databaseManager);
+        islandSystem       = new IslandSystem(this);
+        oneBlockSystem     = new OneBlockSystem(this);
+        landSystem         = new LandSystem(this);
+        jobSystem          = new JobSystem(this);
+        tpaSystem          = new TPASystem(this);
+        lobbySystem        = new LobbySystem(this);
+        dailyRewardSystem  = new DailyRewardSystem(this);
+        weeklyRewardSystem = new WeeklyRewardSystem(this);
+        spawnerItemFactory = new SpawnerItemFactory(this);
+        crateSystem        = new CrateSystem(this);
+        bedrockFormManager = new BedrockFormManager(this);
+        quizSystem         = new QuizSystem(this);
+        antiSpamSystem     = new AntiSpamSystem(this);
+        // ✅ HAPUS: commandBlocker = new CommandBlocker(this);
 
-        // ── Order System (setelah economyManager & lobbySystem) ──
+        // ── Order System ──────────────────
         orderSystem = new AdvancedOrderSystem(this);
         orderGUI    = new OrderGUI(this, orderSystem);
 
@@ -129,7 +129,7 @@ public class KZPlugin extends JavaPlugin {
         getLogger().info("  Quiz     : Auto/"
                 + getConfig().getInt("quiz.auto-interval-minutes", 15) + "min");
         getLogger().info("  AntiSpam : Active");
-        getLogger().info("  CmdBlock : " + (commandBlocker.isEnabled() ? "Active" : "Disabled"));
+        // ✅ HAPUS: getLogger().info("  CmdBlock : " + ...);
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
@@ -139,25 +139,20 @@ public class KZPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Save semua system
-        if (economyManager    != null) economyManager.shutdown();
-        if (crateSystem       != null) crateSystem.shutdown();
-        if (quizSystem        != null) quizSystem.shutdown();
-        if (antiSpamSystem    != null) antiSpamSystem.shutdown();
-        if (islandSystem      != null) islandSystem.saveAll();
-        if (landSystem        != null) landSystem.saveAll();
-        if (lobbySystem       != null) lobbySystem.saveData();
-        if (dailyRewardSystem != null) dailyRewardSystem.saveData();
-        if (weeklyRewardSystem!= null) weeklyRewardSystem.saveData();
+        if (economyManager     != null) economyManager.shutdown();
+        if (crateSystem        != null) crateSystem.shutdown();
+        if (quizSystem         != null) quizSystem.shutdown();
+        if (antiSpamSystem     != null) antiSpamSystem.shutdown();
+        if (islandSystem       != null) islandSystem.saveAll();
+        if (landSystem         != null) landSystem.saveAll();
+        if (lobbySystem        != null) lobbySystem.saveData();
+        if (dailyRewardSystem  != null) dailyRewardSystem.saveData();
+        if (weeklyRewardSystem != null) weeklyRewardSystem.saveData();
+        if (orderSystem        != null) orderSystem.saveDataSync();
 
-        // Save order system (sync karena server mau mati)
-        if (orderSystem != null) orderSystem.saveDataSync();
-
-        // Unregister channels
         getServer().getMessenger().unregisterOutgoingPluginChannel(this);
         getServer().getMessenger().unregisterIncomingPluginChannel(this);
 
-        // Database terakhir
         if (databaseManager != null) databaseManager.disconnect();
 
         getLogger().info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -212,17 +207,17 @@ public class KZPlugin extends JavaPlugin {
 
         // ─── Land ─────────────────────────────────────────────────
         LandCommand landCmd = new LandCommand(this);
-        setCmd("landinvite",  landCmd);
-        setCmd("landaccept",  landCmd);
-        setCmd("landdeny",    landCmd);
-        setCmd("landrole",    landCmd);
-        setCmd("landkick",    landCmd);
-        setCmd("trustland",   landCmd);
-        setCmd("memberrule",  landCmd);
-        setCmd("trustrule",   landCmd);
-        setCmd("setlandname", landCmd);
-        setCmd("deleteland",  landCmd);
-        setCmd("cekcapasitas",landCmd);
+        setCmd("landinvite",   landCmd);
+        setCmd("landaccept",   landCmd);
+        setCmd("landdeny",     landCmd);
+        setCmd("landrole",     landCmd);
+        setCmd("landkick",     landCmd);
+        setCmd("trustland",    landCmd);
+        setCmd("memberrule",   landCmd);
+        setCmd("trustrule",    landCmd);
+        setCmd("setlandname",  landCmd);
+        setCmd("deleteland",   landCmd);
+        setCmd("cekcapasitas", landCmd);
 
         // ─── Job & Reward ─────────────────────────────────────────
         setCmd("job",    new JobCommand(this));
@@ -253,26 +248,26 @@ public class KZPlugin extends JavaPlugin {
 
         // ─── Menu ─────────────────────────────────────────────────
         MenuCommand menuCmd = new MenuCommand(this);
-        setCmd("menu",      menuCmd);
-        setCmd("settppasar",menuCmd);
+        setCmd("menu",       menuCmd);
+        setCmd("settppasar", menuCmd);
 
         // ─── Create Key ───────────────────────────────────────────
         setCmd("createkey", new CreateKeyCommand(this));
 
         // ─── Admin ────────────────────────────────────────────────
         AdminCommand adminCmd = new AdminCommand(this);
-        setCmd("setlobby",    adminCmd);
-        setCmd("setspawn",    adminCmd);
-        setCmd("createnpc",   adminCmd);
-        setCmd("removenpc",   adminCmd);
-        setCmd("listnpc",     adminCmd);
-        setCmd("givebal",     adminCmd);
-        setCmd("removebal",   adminCmd);
-        setCmd("setrank",     adminCmd);
-        setCmd("maintenance", adminCmd);
-        setCmd("announce",    adminCmd);
-        setCmd("clearlag",    adminCmd);
-        setCmd("reloadconfig",adminCmd);
+        setCmd("setlobby",     adminCmd);
+        setCmd("setspawn",     adminCmd);
+        setCmd("createnpc",    adminCmd);
+        setCmd("removenpc",    adminCmd);
+        setCmd("listnpc",      adminCmd);
+        setCmd("givebal",      adminCmd);
+        setCmd("removebal",    adminCmd);
+        setCmd("setrank",      adminCmd);
+        setCmd("maintenance",  adminCmd);
+        setCmd("announce",     adminCmd);
+        setCmd("clearlag",     adminCmd);
+        setCmd("reloadconfig", adminCmd);
 
         // ─── Quiz ─────────────────────────────────────────────────
         setCmd("quiz", new QuizCommand(this));
@@ -290,21 +285,19 @@ public class KZPlugin extends JavaPlugin {
     private void registerListeners() {
         var pm = getServer().getPluginManager();
 
-        // Core listeners
-        pm.registerEvents(new GUIListener(this),           this);
-        pm.registerEvents(new PlayerEventListener(this),   this);
-        pm.registerEvents(new BlockEventListener(this),    this);
-        pm.registerEvents(new EntityEventListener(this),   this);
-        pm.registerEvents(new SpawnerPlaceListener(this),  this);
-        pm.registerEvents(new SpawnerDropListener(this),   this);
-        pm.registerEvents(new CrateListener(this),         this);
-        pm.registerEvents(new MenuListener(this),          this);
+        pm.registerEvents(new GUIListener(this),          this);
+        pm.registerEvents(new PlayerEventListener(this),  this);
+        pm.registerEvents(new BlockEventListener(this),   this);
+        pm.registerEvents(new EntityEventListener(this),  this);
+        pm.registerEvents(new SpawnerPlaceListener(this), this);
+        pm.registerEvents(new SpawnerDropListener(this),  this);
+        pm.registerEvents(new CrateListener(this),        this);
+        pm.registerEvents(new MenuListener(this),         this);
 
-        // Order system listener
         pm.registerEvents(new OrderListener(this, orderSystem, orderGUI), this);
 
-        // NOTE: QuizSystem, AntiSpamSystem, CommandBlocker
-        // register themselves in constructors
+        // NOTE: QuizSystem & AntiSpamSystem register themselves in constructors
+        // ✅ HAPUS: CommandBlocker register sendiri - sudah dihapus
     }
 
     // ══════════════════════════════════
@@ -313,7 +306,7 @@ public class KZPlugin extends JavaPlugin {
 
     private void startTasks() {
 
-        // Scoreboard + Nametag update - setiap 3 detik (60 ticks)
+        // Scoreboard + Nametag - tiap 3 detik
         new BukkitRunnable() {
             @Override public void run() {
                 if (lobbySystem != null) {
@@ -323,46 +316,42 @@ public class KZPlugin extends JavaPlugin {
             }
         }.runTaskTimer(this, 60L, 60L);
 
-        // Playtime tracking - setiap 1 menit (1200 ticks)
+        // Playtime - tiap 1 menit
         new BukkitRunnable() {
             @Override public void run() {
                 if (lobbySystem != null) lobbySystem.trackPlaytime();
             }
         }.runTaskTimer(this, 1200L, 1200L);
 
-        // NOTE: ClearLag sudah dihandle oleh LobbySystem internal scheduler
-        // (setiap 5 menit, countdown 5 detik)
-        // Tidak perlu task duplikat di sini
-
-        // Auction expire check - setiap 5 menit (6000 ticks)
+        // Auction expire check - tiap 5 menit
         new BukkitRunnable() {
             @Override public void run() {
                 AuctionCommand.checkExpired(getInstance());
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Auto-save semua data - setiap 5 menit (6000 ticks)
+        // Auto-save - tiap 5 menit
         new BukkitRunnable() {
             @Override public void run() {
-                if (islandSystem      != null) islandSystem.saveAll();
-                if (landSystem        != null) landSystem.saveAll();
-                if (lobbySystem       != null) lobbySystem.saveData();
-                if (dailyRewardSystem != null) dailyRewardSystem.saveData();
-                if (weeklyRewardSystem!= null) weeklyRewardSystem.saveData();
-                if (crateSystem       != null) crateSystem.saveData();
-                if (orderSystem       != null) orderSystem.saveData();
+                if (islandSystem       != null) islandSystem.saveAll();
+                if (landSystem         != null) landSystem.saveAll();
+                if (lobbySystem        != null) lobbySystem.saveData();
+                if (dailyRewardSystem  != null) dailyRewardSystem.saveData();
+                if (weeklyRewardSystem != null) weeklyRewardSystem.saveData();
+                if (crateSystem        != null) crateSystem.saveData();
+                if (orderSystem        != null) orderSystem.saveData();
                 getLogger().info("[KZ] Auto-save completed.");
             }
         }.runTaskTimer(this, 6000L, 6000L);
 
-        // Lobby fireworks - setiap 3 menit (3600 ticks)
+        // Lobby fireworks - tiap 3 menit
         new BukkitRunnable() {
             @Override public void run() {
                 if (lobbySystem != null) lobbySystem.spawnFireworks();
             }
         }.runTaskTimer(this, 3600L, 3600L);
 
-        // Request server name dari proxy - cek tiap 10 detik sampai dapat
+        // Request server name dari proxy
         new BukkitRunnable() {
             @Override public void run() {
                 if (!Bukkit.getOnlinePlayers().isEmpty()
@@ -398,25 +387,25 @@ public class KZPlugin extends JavaPlugin {
     //  GETTERS
     // ══════════════════════════════════
 
-    public static KZPlugin       getInstance()            { return instance; }
-    public DatabaseManager       getDatabaseManager()     { return databaseManager; }
-    public EconomyManager        getEconomyManager()      { return economyManager; }
-    public IslandSystem          getIslandSystem()        { return islandSystem; }
-    public OneBlockSystem        getOneBlockSystem()      { return oneBlockSystem; }
-    public LandSystem            getLandSystem()          { return landSystem; }
-    public JobSystem             getJobSystem()           { return jobSystem; }
-    public TPASystem             getTpaSystem()           { return tpaSystem; }
-    public LobbySystem           getLobbySystem()         { return lobbySystem; }
-    public ItemDatabase          getItemDatabase()        { return itemDatabase; }
-    public DailyRewardSystem     getDailyRewardSystem()   { return dailyRewardSystem; }
-    public WeeklyRewardSystem    getWeeklyRewardSystem()  { return weeklyRewardSystem; }
-    public SpawnerItemFactory    getSpawnerItemFactory()  { return spawnerItemFactory; }
-    public CrateSystem           getCrateSystem()         { return crateSystem; }
-    public BedrockFormManager    getBedrockFormManager()  { return bedrockFormManager; }
-    public ProxyMessageListener  getProxyMessageListener(){ return proxyMessageListener; }
-    public QuizSystem            getQuizSystem()          { return quizSystem; }
-    public AntiSpamSystem        getAntiSpamSystem()      { return antiSpamSystem; }
-    public CommandBlocker        getCommandBlocker()      { return commandBlocker; }
-    public AdvancedOrderSystem   getOrderSystem()         { return orderSystem; }
-    public OrderGUI              getOrderGUI()            { return orderGUI; }
+    public static KZPlugin       getInstance()             { return instance; }
+    public DatabaseManager       getDatabaseManager()      { return databaseManager; }
+    public EconomyManager        getEconomyManager()       { return economyManager; }
+    public IslandSystem          getIslandSystem()         { return islandSystem; }
+    public OneBlockSystem        getOneBlockSystem()       { return oneBlockSystem; }
+    public LandSystem            getLandSystem()           { return landSystem; }
+    public JobSystem             getJobSystem()            { return jobSystem; }
+    public TPASystem             getTpaSystem()            { return tpaSystem; }
+    public LobbySystem           getLobbySystem()          { return lobbySystem; }
+    public ItemDatabase          getItemDatabase()         { return itemDatabase; }
+    public DailyRewardSystem     getDailyRewardSystem()    { return dailyRewardSystem; }
+    public WeeklyRewardSystem    getWeeklyRewardSystem()   { return weeklyRewardSystem; }
+    public SpawnerItemFactory    getSpawnerItemFactory()   { return spawnerItemFactory; }
+    public CrateSystem           getCrateSystem()          { return crateSystem; }
+    public BedrockFormManager    getBedrockFormManager()   { return bedrockFormManager; }
+    public ProxyMessageListener  getProxyMessageListener() { return proxyMessageListener; }
+    public QuizSystem            getQuizSystem()           { return quizSystem; }
+    public AntiSpamSystem        getAntiSpamSystem()       { return antiSpamSystem; }
+    // ✅ HAPUS: public CommandBlocker getCommandBlocker() { return commandBlocker; }
+    public AdvancedOrderSystem   getOrderSystem()          { return orderSystem; }
+    public OrderGUI              getOrderGUI()             { return orderGUI; }
 }
