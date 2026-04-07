@@ -33,7 +33,7 @@ public class PlayerEventListener implements Listener {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  JOIN - Load economy + apply rank + scoreboard + nametag
+    //  JOIN - Load economy + scoreboard + nametag
     // ════════════════════════════════════════════════════════════════
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -95,17 +95,17 @@ public class PlayerEventListener implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
 
-            plugin.getLobbySystem().applyRankPermissions(player);
             plugin.getLobbySystem().updateScoreboard(player);
             plugin.getLobbySystem().updateNametag(player);
 
-            String mode = plugin.getEconomyManager().getPlayerMode(player);
+            String mode     = plugin.getEconomyManager().getPlayerMode(player);
             String modeName = plugin.getEconomyManager().getModeName(mode);
-            double bal = plugin.getEconomyManager().getBalance(player);
+            double bal      = plugin.getEconomyManager().getBalance(player);
 
             player.sendMessage("");
             player.sendMessage("§b§lKZ §8» §7World changed! Now in: " + modeName);
-            player.sendMessage("§b§lKZ §8» §7Balance here: §a" + plugin.getEconomyManager().formatBalance(bal));
+            player.sendMessage("§b§lKZ §8» §7Balance here: §a"
+                    + plugin.getEconomyManager().formatBalance(bal));
             player.sendMessage("");
         }, 5L);
     }
@@ -116,7 +116,7 @@ public class PlayerEventListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerMove(PlayerMoveEvent event) {
         Location from = event.getFrom();
-        Location to = event.getTo();
+        Location to   = event.getTo();
         if (to == null) return;
 
         if (from.getBlockX() == to.getBlockX()
@@ -126,20 +126,23 @@ public class PlayerEventListener implements Listener {
         Player player = event.getPlayer();
 
         LandSystem.LandData fromLand = plugin.getLandSystem().getLandAt(from);
-        LandSystem.LandData toLand = plugin.getLandSystem().getLandAt(to);
+        LandSystem.LandData toLand   = plugin.getLandSystem().getLandAt(to);
 
         boolean wasInClaim = fromLand != null;
-        boolean nowInClaim = toLand != null;
+        boolean nowInClaim = toLand   != null;
 
         if (!wasInClaim && nowInClaim) {
             if (toLand.owner.equals(player.getUniqueId())) {
-                sendActionBar(player, "§a🏠 §7Entering §ayour land §8- §f" + toLand.name);
+                sendActionBar(player,
+                        "§a🏠 §7Entering §ayour land §8- §f" + toLand.name);
             } else {
                 String ownerName = Bukkit.getOfflinePlayer(toLand.owner).getName();
-                sendActionBar(player, "§e🔒 §7Entering §f" + toLand.name
-                    + " §8(§7owned by §f" + ownerName + "§8)");
+                sendActionBar(player,
+                        "§e🔒 §7Entering §f" + toLand.name
+                        + " §8(§7owned by §f" + ownerName + "§8)");
             }
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.3f, 1.5f);
+            player.playSound(player.getLocation(),
+                    Sound.BLOCK_NOTE_BLOCK_PLING, 0.3f, 1.5f);
 
         } else if (wasInClaim && !nowInClaim) {
             sendActionBar(player, "§7🌍 Leaving claimed land");
@@ -147,11 +150,13 @@ public class PlayerEventListener implements Listener {
         } else if (wasInClaim && nowInClaim) {
             if (fromLand != toLand && !fromLand.name.equals(toLand.name)) {
                 if (toLand.owner.equals(player.getUniqueId())) {
-                    sendActionBar(player, "§a🏠 §7Now in §ayour land §8- §f" + toLand.name);
+                    sendActionBar(player,
+                            "§a🏠 §7Now in §ayour land §8- §f" + toLand.name);
                 } else {
                     String ownerName = Bukkit.getOfflinePlayer(toLand.owner).getName();
-                    sendActionBar(player, "§e🔒 §7Now in §f" + toLand.name
-                        + " §8(§7" + ownerName + "§8)");
+                    sendActionBar(player,
+                            "§e🔒 §7Now in §f" + toLand.name
+                            + " §8(§7" + ownerName + "§8)");
                 }
             }
         }
@@ -166,7 +171,7 @@ public class PlayerEventListener implements Listener {
 
         if (plugin.getIslandSystem().hasIsland(player.getUniqueId())) {
             Location spawn = plugin.getIslandSystem()
-                .getIsland(player.getUniqueId()).spawnPoint;
+                    .getIsland(player.getUniqueId()).spawnPoint;
             if (spawn != null) {
                 event.setRespawnLocation(spawn);
                 return;
@@ -185,7 +190,7 @@ public class PlayerEventListener implements Listener {
         Player player = event.getPlayer();
         if (player.hasPermission("kzplugin.admin")) return;
 
-        String rawCmd = event.getMessage().split(" ")[0].toLowerCase().replace("/", "");
+        String rawCmd      = event.getMessage().split(" ")[0].toLowerCase().replace("/", "");
         String requiredPerm = getPermissionForCommand(rawCmd);
 
         if (requiredPerm == null) return;
@@ -193,50 +198,48 @@ public class PlayerEventListener implements Listener {
         if (!player.hasPermission(requiredPerm)) {
             event.setCancelled(true);
             String rank = plugin.getLobbySystem().getRank(player.getUniqueId());
-            String neededRank = getMinimumRankForPermission(requiredPerm);
 
             player.sendMessage("");
             player.sendMessage("§c§lKZ §8» §7You don't have permission to use this command.");
-            player.sendMessage("§c§lKZ §8» §7Your rank: " + plugin.getLobbySystem().getRankDisplay(rank));
-            if (neededRank != null) {
-                player.sendMessage("§c§lKZ §8» §7Required rank: " + plugin.getLobbySystem().getRankDisplay(neededRank));
-            }
+            player.sendMessage("§c§lKZ §8» §7Your rank: "
+                    + plugin.getLobbySystem().getRankDisplay(rank));
             player.sendMessage("§c§lKZ §8» §7Purchase ranks at: §b/website");
             player.sendMessage("");
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
         }
     }
 
-        private String getPermissionForCommand(String cmd) {
+    private String getPermissionForCommand(String cmd) {
         return switch (cmd) {
-            // Lobby & Info (semua rank dapat)
-            case "help"        -> "kzplugin.cmd.help";
-            case "rules"       -> "kzplugin.cmd.rules";
-            case "lobby", "hub" -> "kzplugin.cmd.lobby";
-            case "spawn"       -> "kzplugin.cmd.spawn";
-            case "home"        -> "kzplugin.cmd.island";
-            case "stats"       -> "kzplugin.cmd.stats";
-            case "rank"        -> "kzplugin.cmd.rank";
-            case "discord"     -> "kzplugin.cmd.discord";
-            case "website"     -> "kzplugin.cmd.website";
+            // Lobby & Info
+            case "help"             -> "kzplugin.cmd.help";
+            case "rules"            -> "kzplugin.cmd.rules";
+            case "lobby", "hub"     -> "kzplugin.cmd.lobby";
+            case "spawn"            -> "kzplugin.cmd.spawn";
+            case "home"             -> "kzplugin.cmd.island";
+            case "stats"            -> "kzplugin.cmd.stats";
+            case "rank"             -> "kzplugin.cmd.rank";
+            case "discord"          -> "kzplugin.cmd.discord";
+            case "website"          -> "kzplugin.cmd.website";
 
             // Economy
-            case "shop"        -> "kzplugin.cmd.shop";
-            case "sell"        -> "kzplugin.cmd.sell";
-            case "bal", "balance" -> "kzplugin.cmd.bal";
-            case "pay"         -> "kzplugin.cmd.pay";
-            case "baltop"      -> "kzplugin.cmd.baltop";
-            case "ah", "inbox" -> "kzplugin.cmd.ah";
-            case "cf"          -> "kzplugin.cmd.cf";
+            case "shop"             -> "kzplugin.cmd.shop";
+            case "sell"             -> "kzplugin.cmd.sell";
+            case "bal", "balance"   -> "kzplugin.cmd.bal";
+            case "pay"              -> "kzplugin.cmd.pay";
+            case "baltop"           -> "kzplugin.cmd.baltop";
+            case "ah", "inbox"      -> "kzplugin.cmd.ah";
+            case "cf"               -> "kzplugin.cmd.cf";
 
             // Island
             case "createisland", "deleteisland", "upisland",
                  "islandsetting", "nameisland", "visit",
                  "topisland", "invite", "accept", "deny",
-                 "trust", "untrust" -> "kzplugin.cmd.island";
+                 "trust", "untrust"  -> "kzplugin.cmd.island";
 
             // TPA
-            case "tpa", "tpaccept", "tpadeny", "tpcancel" -> "kzplugin.cmd.tpa";
+            case "tpa", "tpaccept",
+                 "tpadeny", "tpcancel" -> "kzplugin.cmd.tpa";
 
             // Land
             case "cekcapasitas", "landinvite", "landaccept",
@@ -245,38 +248,30 @@ public class PlayerEventListener implements Listener {
                  "setlandname", "deleteland" -> "kzplugin.cmd.land";
 
             // Job & Rewards
-            case "job"         -> "kzplugin.cmd.job";
-            case "daily"       -> "kzplugin.cmd.daily";
-            case "weekly"      -> "kzplugin.cmd.weekly";
+            case "job"              -> "kzplugin.cmd.job";
+            case "daily"            -> "kzplugin.cmd.daily";
+            case "weekly"           -> "kzplugin.cmd.weekly";
 
             // Rank-locked commands
-            case "nick"        -> "kzplugin.cmd.nick";
-            case "hat"         -> "kzplugin.cmd.hat";
+            case "nick"             -> "kzplugin.cmd.nick";
+            case "hat"              -> "kzplugin.cmd.hat";
             case "enderchest", "ec" -> "kzplugin.cmd.enderchest";
-            case "craft", "wb", "workbench" -> "kzplugin.cmd.craft";
-            case "fly"         -> "kzplugin.cmd.fly";
-            case "heal"        -> "kzplugin.cmd.heal";
-            case "feed"        -> "kzplugin.cmd.feed";
-            case "back"        -> "kzplugin.cmd.back";
-            case "god"         -> "kzplugin.cmd.god";
+            case "craft", "wb",
+                 "workbench"        -> "kzplugin.cmd.craft";
+            case "fly"              -> "kzplugin.cmd.fly";
+            case "heal"             -> "kzplugin.cmd.heal";
+            case "feed"             -> "kzplugin.cmd.feed";
+            case "back"             -> "kzplugin.cmd.back";
+            case "god"              -> "kzplugin.cmd.god";
 
-            // Admin commands — skip check (handled by kzplugin.admin)
+            // Admin commands — skip check
             case "setlobby", "setspawn", "createnpc", "removenpc",
                  "listnpc", "givebal", "removebal", "setrank",
                  "maintenance", "announce" -> null;
 
-            // Unknown commands — don't block
+            // Unknown — don't block
             default -> null;
         };
-    }
-
-    private String getMinimumRankForPermission(String permission) {
-        for (var entry : plugin.getLobbySystem().getAllRanks().entrySet()) {
-            if (entry.getValue().permissions().contains(permission)) {
-                return entry.getKey();
-            }
-        }
-        return null;
     }
 
     // ════════════════════════════════════════════════════════════════
