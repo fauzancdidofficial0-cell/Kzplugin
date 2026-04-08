@@ -1,7 +1,7 @@
 name: KZPlugin
 version: 2.0.0
 main: com.kz.plugin.KZPlugin
-api-version: "1.20"
+api-version: "1.21"
 description: KZ Complete Multi-Server Plugin System
 authors: [KZTeam]
 
@@ -362,6 +362,10 @@ commands:
     description: Set lokasi teleport pasar
     usage: /settppasar
     permission: kz.admin
+  vanish:
+    description: Toggle vanish (Admin)
+    usage: /vanish
+    permission: kzplugin.admin
 
 # ══════════════════════════════════════
 #  PERMISSIONS
