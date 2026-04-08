@@ -95,15 +95,15 @@ public class LobbySystem {
     // ════════════════════════════════════════════════════════════════
 
     private void initRankConfig() {
-        rankConfig.put("initiate",    new RankData("Initiate",    "§7", "§8[§7Initiate§8]",         20,  1,  1, 0));
-        rankConfig.put("citizen",     new RankData("Citizen",     "§f", "§7[§fCitizen§7]",           25,  1,  1, 1));
-        rankConfig.put("resident",    new RankData("Resident",    "§a", "§a[Resident]",               30,  2,  2, 2));
-        rankConfig.put("valiant",     new RankData("Valiant",     "§e", "§e[Valiant]",                40,  3,  2, 3));
-        rankConfig.put("sovereign",   new RankData("Sovereign",   "§6", "§6[§lSovereign§6]",          55,  5,  3, 4));
-        rankConfig.put("ethereal",    new RankData("Ethereal",    "§b", "§b[§lEthereal§b]",           75,  8,  5, 5));
-        rankConfig.put("luminescent", new RankData("Luminescent", "§d", "§d[§l✦Luminescent§d]",     100, 12,  7, 6));
-        rankConfig.put("celestial",   new RankData("Celestial",   "§5", "§5[§l★Celestial★§5]",      150, 18,  9, 7));
-        rankConfig.put("ascended",    new RankData("Ascended",    "§c", "§c[§4§l⚡ASCENDED⚡§c]",   200, 25, 12, 8));
+        rankConfig.put("initiate",    new RankData("Initiate",    "§7", "§8[§7Initiate§8]",         100,  1,  1, 0));
+        rankConfig.put("citizen",     new RankData("Citizen",     "§f", "§7[§fCitizen§7]",           250,  1,  1, 1));
+        rankConfig.put("resident",    new RankData("Resident",    "§a", "§a[Resident]",               300,  2,  2, 2));
+        rankConfig.put("valiant",     new RankData("Valiant",     "§e", "§e[Valiant]",                400,  3,  2, 3));
+        rankConfig.put("sovereign",   new RankData("Sovereign",   "§6", "§6[§lSovereign§6]",          550,  5,  3, 4));
+        rankConfig.put("ethereal",    new RankData("Ethereal",    "§b", "§b[§lEthereal§b]",           750,  8,  5, 5));
+        rankConfig.put("luminescent", new RankData("Luminescent", "§d", "§d[§l✦Luminescent§d]",     1000, 12,  7, 6));
+        rankConfig.put("celestial",   new RankData("Celestial",   "§5", "§5[§l★Celestial★§5]",      1500, 18,  9, 7));
+        rankConfig.put("ascended",    new RankData("Ascended",    "§c", "§c[§4§l⚡ASCENDED⚡§c]",   2000, 25, 12, 8));
         plugin.getLogger().info("[Rank] Loaded " + rankConfig.size() + " ranks.");
     }
 
@@ -390,7 +390,27 @@ public class LobbySystem {
 
     // ════════════════════════════════════════════════════════════════
     //  ✅ FIX: FORMAT COINS
-    // ════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════// ✅ KEEP yang ini saja
+public String formatCoins(double amount) {
+    if (amount < 0) amount = 0;
+    if (amount >= 1_000_000_000_000.0) {
+        double v = amount / 1_000_000_000_000.0;
+        return "§d" + (v % 1 == 0 ? String.format("%.0fT", v) : String.format("%.1fT", v));
+    }
+    if (amount >= 1_000_000_000.0) {
+        double v = amount / 1_000_000_000.0;
+        return "§b" + (v % 1 == 0 ? String.format("%.0fB", v) : String.format("%.1fB", v));
+    }
+    if (amount >= 1_000_000.0) {
+        double v = amount / 1_000_000.0;
+        return "§6" + (v % 1 == 0 ? String.format("%.0fM", v) : String.format("%.1fM", v));
+    }
+    if (amount >= 1_000.0) {
+        double v = amount / 1_000.0;
+        return "§e" + (v % 1 == 0 ? String.format("%.0fK", v) : String.format("%.1fK", v));
+    }
+    return "§f" + String.format("%.0f", amount);
+}═════
 
     /**
      * Format coins dengan warna:
@@ -400,40 +420,7 @@ public class LobbySystem {
      *   1,000,000 → §61M
      *   1,000,000,000 → §b1B
      */
-    public String formatCoins(double amount) {
-        if (amount < 0) amount = 0;
-
-        // Trillion
-        if (amount >= 1_000_000_000_000.0) {
-            double v = amount / 1_000_000_000_000.0;
-            return "§d" + (v % 1 == 0
-                    ? String.format("%.0fT", v)
-                    : String.format("%.1fT", v));
-        }
-        // Billion
-        if (amount >= 1_000_000_000.0) {
-            double v = amount / 1_000_000_000.0;
-            return "§b" + (v % 1 == 0
-                    ? String.format("%.0fB", v)
-                    : String.format("%.1fB", v));
-        }
-        // Million
-        if (amount >= 1_000_000.0) {
-            double v = amount / 1_000_000.0;
-            return "§6" + (v % 1 == 0
-                    ? String.format("%.0fM", v)
-                    : String.format("%.1fM", v));
-        }
-        // Thousand
-        if (amount >= 1_000.0) {
-            double v = amount / 1_000.0;
-            return "§e" + (v % 1 == 0
-                    ? String.format("%.0fK", v)
-                    : String.format("%.1fK", v));
-        }
-        // Raw
-        return "§f" + String.format("%.0f", amount);
-    }
+  
 
     // ════════════════════════════════════════════════════════════════
     //  NPC SKIN SYSTEM
