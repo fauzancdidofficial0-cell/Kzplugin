@@ -18,177 +18,178 @@ commands:
     description: Open Shop GUI
     usage: /shop
     aliases: [shopgui, toko]
-    permission: kzplugin.cmd.shop
+    permission: kzplugin.admin
   sell:
     description: Open Sell GUI
     usage: /sell
     aliases: [sellgui]
-    permission: kzplugin.cmd.sell
+    permission: kzplugin.admin
   ah:
     description: Auction House
     usage: /ah [sell|cancel] [price] [amount]
     aliases: [market, auction]
-    permission: kzplugin.cmd.ah
+    permission: kzplugin.admin
   inbox:
     description: Check expired items inbox
     usage: /inbox
-    permission: kzplugin.cmd.ah
+    permission: kzplugin.admin
   bal:
     description: Check balance
     usage: /bal [player]
     aliases: [balance, money]
-    permission: kzplugin.cmd.bal
+    permission: kzplugin.admin
   pay:
     description: Transfer money
     usage: /pay <player> <amount>
-    permission: kzplugin.cmd.pay
+    permission: kzplugin.admin
   baltop:
     description: Top 10 richest players
     usage: /baltop
-    permission: kzplugin.cmd.baltop
+    permission: kzplugin.admin
   cf:
     description: Coinflip gambling
     usage: /cf <amount>
     aliases: [coinflip]
-    permission: kzplugin.cmd.cf
+    permission: kzplugin.admin
   order:
-    description: Open Order Market (Global Buy Orders)
+    description: Open Order Market
     usage: /order
     aliases: [buyorder, orders]
+    permission: kzplugin.admin
   myorders:
-    description: View & manage your buy orders
+    description: View your buy orders
     usage: /myorders
     aliases: [orderlist, mystash]
+    permission: kzplugin.admin
 
   # ══════ ISLAND SYSTEM ══════
   createisland:
     description: Create new island
     usage: /createisland <mode>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   deleteisland:
     description: Delete your island
     usage: /deleteisland
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   home:
     description: Teleport to island
     usage: /home
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   upisland:
     description: Upgrade island border
     usage: /upisland
     aliases: [upgradeisland]
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   islandsetting:
     description: View island settings
     usage: /islandsetting
     aliases: [islandinfo]
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   nameisland:
     description: Rename your island
     usage: /nameisland <name>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   visit:
     description: Visit player island
     usage: /visit <player>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   topisland:
     description: Top 10 islands
     usage: /topisland
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   invite:
     description: Invite player to island
     usage: /invite <player>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   accept:
     description: Accept island invite
     usage: /accept
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   deny:
     description: Deny island invite
     usage: /deny
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   trust:
     description: Trust player on island
     usage: /trust <player>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
   untrust:
     description: Untrust player
     usage: /untrust <player>
-    permission: kzplugin.cmd.island
+    permission: kzplugin.admin
 
   # ══════ TPA SYSTEM ══════
   tpa:
     description: Request teleport
     usage: /tpa <player>
-    permission: kzplugin.cmd.tpa
+    permission: kzplugin.admin
   tpaccept:
     description: Accept TPA request
     usage: /tpaccept
-    permission: kzplugin.cmd.tpa
+    permission: kzplugin.admin
   tpadeny:
     description: Deny TPA request
     usage: /tpadeny
-    permission: kzplugin.cmd.tpa
+    permission: kzplugin.admin
   tpcancel:
     description: Cancel TPA request
     usage: /tpcancel
-    permission: kzplugin.cmd.tpa
+    permission: kzplugin.admin
 
   # ══════ LAND SYSTEM ══════
   landinvite:
     description: Invite player to land
     usage: /landinvite <player>
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   landaccept:
     description: Accept land invite
     usage: /landaccept
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   landdeny:
     description: Deny land invite
     usage: /landdeny
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   landrole:
     description: Set player role in land
     usage: /landrole <player> <role>
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   landkick:
     description: Kick player from land
     usage: /landkick <player>
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   trustland:
     description: Trust player on land
     usage: /trustland <player>
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   memberrule:
     description: Open member rules GUI
     usage: /memberrule
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   trustrule:
     description: Open trust rules GUI
     usage: /trustrule
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   setlandname:
     description: Rename your land
     usage: /setlandname <name>
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   deleteland:
     description: Delete your land
     usage: /deleteland
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
   cekcapasitas:
     description: Check land capacity info
     usage: /cekcapasitas
     aliases: [landinfo, landcap]
-    permission: kzplugin.cmd.land
+    permission: kzplugin.admin
 
   # ══════ GACHA CRATE ══════
-  # ✅ FIX: Hapus indentasi berlebih, pisah createkey jadi command sendiri
   gachacreate:
-    description: Create a gacha crate at your location
+    description: Create a gacha crate
     usage: /gachacreate <title> <desc1> <desc2> <color> <keyName>
     permission: kzplugin.admin
   gachadelete:
-    description: Delete the nearest gacha crate
+    description: Delete nearest gacha crate
     usage: /gachadelete
     permission: kzplugin.admin
   gachalist:
@@ -204,99 +205,102 @@ commands:
     usage: /createkey <material> <colored_name>
     permission: kzplugin.admin
     aliases: [makekey]
+  givekey:
+    description: Give crate key to a player
+    usage: /givekey <player> <crateId> [amount]
+    permission: kzplugin.admin
 
   # ══════ JOB & REWARD ══════
   job:
     description: Job system
     usage: /job [miner|farmer|hunter]
-    permission: kzplugin.cmd.job
+    permission: kzplugin.admin
   daily:
     description: Daily reward
     usage: /daily
-    permission: kzplugin.cmd.daily
+    permission: kzplugin.admin
   weekly:
     description: Weekly reward
     usage: /weekly
-    permission: kzplugin.cmd.weekly
+    permission: kzplugin.admin
 
   # ══════ LOBBY & INFO ══════
   lobby:
-    description: Teleport to lobby server
+    description: Teleport to lobby
     usage: /lobby
     aliases: [hub]
-    permission: kzplugin.cmd.lobby
+    permission: kzplugin.admin
   spawn:
-    description: Teleport to spawn/island
+    description: Teleport to spawn
     usage: /spawn
-    permission: kzplugin.cmd.spawn
+    permission: kzplugin.admin
   help:
     description: Server help & commands
     usage: /help
-    aliases: [help]
-    permission: kzplugin.cmd.help
+    permission: kzplugin.admin
   stats:
     description: Player statistics
     usage: /stats [player]
-    permission: kzplugin.cmd.stats
+    permission: kzplugin.admin
   rank:
     description: Rank information
     usage: /rank
     aliases: [ranks]
-    permission: kzplugin.cmd.rank
+    permission: kzplugin.admin
   discord:
     description: Discord link
     usage: /discord
     aliases: [dc]
-    permission: kzplugin.cmd.discord
+    permission: kzplugin.admin
   website:
     description: Website/Store link
     usage: /website
     aliases: [web, store]
-    permission: kzplugin.cmd.website
+    permission: kzplugin.admin
   rules:
     description: Server rules
     usage: /rules
-    permission: kzplugin.cmd.rules
+    permission: kzplugin.admin
 
   # ══════ RANK-LOCKED COMMANDS ══════
   nick:
-    description: Change nickname (Iron+)
+    description: Change nickname
     usage: /nick <name|off>
-    permission: kzplugin.cmd.nick
+    permission: kzplugin.admin
   hat:
-    description: Wear item as hat (Gold+)
+    description: Wear item as hat
     usage: /hat
-    permission: kzplugin.cmd.hat
+    permission: kzplugin.admin
   enderchest:
-    description: Open enderchest (Diamond+)
+    description: Open enderchest
     usage: /enderchest
     aliases: [ec]
-    permission: kzplugin.cmd.enderchest
+    permission: kzplugin.admin
   craft:
-    description: Open crafting table (Emerald+)
+    description: Open crafting table
     usage: /craft
     aliases: [workbench, wb]
-    permission: kzplugin.cmd.craft
+    permission: kzplugin.admin
   fly:
-    description: Toggle flight (Obsidian+)
+    description: Toggle flight
     usage: /fly
-    permission: kzplugin.cmd.fly
+    permission: kzplugin.admin
   heal:
-    description: Heal yourself (Onyx+)
+    description: Heal yourself
     usage: /heal
-    permission: kzplugin.cmd.heal
+    permission: kzplugin.admin
   feed:
-    description: Feed yourself (Phantom+)
+    description: Feed yourself
     usage: /feed
-    permission: kzplugin.cmd.feed
+    permission: kzplugin.admin
   back:
-    description: Return to last location (Eclipse+)
+    description: Return to last location
     usage: /back
-    permission: kzplugin.cmd.back
+    permission: kzplugin.admin
   god:
-    description: Toggle god mode (Ethereal)
+    description: Toggle god mode
     usage: /god
-    permission: kzplugin.cmd.god
+    permission: kzplugin.admin
 
   # ══════ ADMIN COMMANDS ══════
   setlobby:
@@ -304,12 +308,12 @@ commands:
     usage: /setlobby
     permission: kzplugin.admin
   setspawn:
-    description: Set mode spawn
-    usage: /setspawn <mode>
+    description: Set world spawn
+    usage: /setspawn
     permission: kzplugin.admin
   createnpc:
     description: Create NPC
-    usage: /createnpc <mode> <name> [server]
+    usage: /createnpc <mode> <name>
     permission: kzplugin.admin
   removenpc:
     description: Remove nearby NPC
@@ -321,12 +325,12 @@ commands:
     permission: kzplugin.admin
   givebal:
     description: Give balance to player
-    usage: /givebal <player> <amount> [mode]
+    usage: /givebal <player> <amount>
     aliases: [addbal, ecoGive]
     permission: kzplugin.admin
   removebal:
     description: Remove balance from player
-    usage: /removebal <player> <amount> [mode]
+    usage: /removebal <player> <amount>
     aliases: [takebal, ecoTake]
     permission: kzplugin.admin
   setrank:
@@ -335,7 +339,7 @@ commands:
     permission: kzplugin.admin
   maintenance:
     description: Toggle maintenance mode
-    usage: /maintenance [on|off]
+    usage: /maintenance
     permission: kzplugin.admin
   announce:
     description: Broadcast announcement
@@ -343,27 +347,23 @@ commands:
     aliases: [broadcast, bc]
     permission: kzplugin.admin
   clearlag:
-    description: Force clear ground items
+    description: Clear ground items
     usage: /clearlag
     permission: kzplugin.admin
   reloadconfig:
-    description: Reload config.yml
+    description: Reload config
     usage: /reloadconfig
     permission: kzplugin.admin
-  givekey:
-    description: Give crate key to a player
-    usage: /givekey <player> <crateId> [amount]
-    permission: kzplugin.admin
-  # ✅ FIX: menu & settppasar dipindah keluar dari givekey
   menu:
     description: Buka menu teleport
     usage: /menu
+    permission: kzplugin.admin
   settppasar:
     description: Set lokasi teleport pasar
     usage: /settppasar
-    permission: kz.admin
+    permission: kzplugin.admin
   vanish:
-    description: Toggle vanish (Admin)
+    description: Toggle vanish
     usage: /vanish
     permission: kzplugin.admin
 
@@ -374,96 +374,6 @@ permissions:
   kzplugin.admin:
     description: Full admin access
     default: op
-  kzplugin.cmd.help:
-    description: Use /help
-    default: false
-  kzplugin.cmd.rules:
-    description: Use /rules
-    default: false
-  kzplugin.cmd.shop:
-    description: Use /shop
-    default: false
-  kzplugin.cmd.sell:
-    description: Use /sell
-    default: false
-  kzplugin.cmd.bal:
-    description: Use /bal
-    default: false
-  kzplugin.cmd.pay:
-    description: Use /pay
-    default: false
-  kzplugin.cmd.baltop:
-    description: Use /baltop
-    default: false
-  kzplugin.cmd.daily:
-    description: Use /daily
-    default: false
-  kzplugin.cmd.weekly:
-    description: Use /weekly
-    default: false
-  kzplugin.cmd.tpa:
-    description: Use TPA system
-    default: false
-  kzplugin.cmd.lobby:
-    description: Use /lobby
-    default: false
-  kzplugin.cmd.spawn:
-    description: Use /spawn
-    default: false
-  kzplugin.cmd.stats:
-    description: Use /stats
-    default: false
-  kzplugin.cmd.rank:
-    description: Use /rank
-    default: false
-  kzplugin.cmd.discord:
-    description: Use /discord
-    default: false
-  kzplugin.cmd.website:
-    description: Use /website
-    default: false
-  kzplugin.cmd.island:
-    description: Use island commands
-    default: false
-  kzplugin.cmd.land:
-    description: Use land commands
-    default: false
-  kzplugin.cmd.job:
-    description: Use /job
-    default: false
-  kzplugin.cmd.ah:
-    description: Use auction house
-    default: false
-  kzplugin.cmd.cf:
-    description: Use /cf coinflip
-    default: false
-  kzplugin.cmd.nick:
-    description: Use /nick (Iron+)
-    default: false
-  kzplugin.cmd.hat:
-    description: Use /hat (Gold+)
-    default: false
-  kzplugin.cmd.enderchest:
-    description: Use /enderchest (Diamond+)
-    default: false
-  kzplugin.cmd.craft:
-    description: Use /craft (Emerald+)
-    default: false
-  kzplugin.cmd.fly:
-    description: Use /fly (Obsidian+)
-    default: false
-  kzplugin.cmd.heal:
-    description: Use /heal (Onyx+)
-    default: false
-  kzplugin.cmd.feed:
-    description: Use /feed (Phantom+)
-    default: false
-  kzplugin.cmd.back:
-    description: Use /back (Eclipse+)
-    default: false
-  kzplugin.cmd.god:
-    description: Use /god (Ethereal)
-    default: false
   kzplugin.rank.iron:
     description: Iron rank
     default: false
