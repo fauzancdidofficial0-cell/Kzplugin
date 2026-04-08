@@ -16,7 +16,7 @@ import java.util.logging.Level;
 
 public class EconomyManager {
 
-    private static final double MAX_BALANCE = 999_999_999.00;
+    private static final double MAX_BALANCE = 999_999_999_999.0;
     private static final double MIN_BALANCE = 0.00;
     private static final long AUTOSAVE_INTERVAL_TICKS = 6000L;
 
