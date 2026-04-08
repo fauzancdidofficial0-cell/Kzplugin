@@ -17,7 +17,6 @@ import org.bukkit.scoreboard.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -30,19 +29,19 @@ public class LobbySystem {
     private File dataFile;
     private FileConfiguration dataConfig;
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  DATA STORAGE
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private Location lobbySpawn;
-    private final Map<String, Location> modeSpawns  = new HashMap<>();
-    private final Map<UUID, String>     platforms   = new HashMap<>();
-    private final Map<UUID, String>     ranks       = new HashMap<>();
-    private final Map<UUID, Integer>    kills       = new HashMap<>();
-    private final Map<UUID, Integer>    deaths      = new HashMap<>();
-    private final Map<UUID, Integer>    playtime    = new HashMap<>();
-    private final Map<UUID, Boolean>    firstJoin   = new HashMap<>();
-    private final Set<UUID>             vanished    = new HashSet<>();
+    private final Map<String, Location> modeSpawns    = new HashMap<>();
+    private final Map<UUID, String>     platforms     = new HashMap<>();
+    private final Map<UUID, String>     ranks         = new HashMap<>();
+    private final Map<UUID, Integer>    kills         = new HashMap<>();
+    private final Map<UUID, Integer>    deaths        = new HashMap<>();
+    private final Map<UUID, Integer>    playtime      = new HashMap<>();
+    private final Map<UUID, Boolean>    firstJoin     = new HashMap<>();
+    private final Set<UUID>             vanished      = new HashSet<>();
 
     // NPC data
     private final Map<String, Location> npcLocations  = new HashMap<>();
@@ -52,7 +51,7 @@ public class LobbySystem {
     private final Map<String, String>   npcSkinOwners = new HashMap<>();
     private final Map<String, UUID>     npcEntityMap  = new HashMap<>();
 
-    // Skin cache: username → [texture, signature]
+    // Skin cache
     private final Map<String, String[]> skinCache = new ConcurrentHashMap<>();
 
     private boolean maintenance     = false;
@@ -61,9 +60,9 @@ public class LobbySystem {
 
     private final String currentServer;
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  RANK CONFIG
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public record RankData(
             String displayName,
@@ -77,9 +76,9 @@ public class LobbySystem {
 
     private final Map<String, RankData> rankConfig = new LinkedHashMap<>();
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  CONSTRUCTOR
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public LobbySystem(KZPlugin plugin) {
         this.plugin        = plugin;
@@ -90,29 +89,28 @@ public class LobbySystem {
         startClearlagScheduler();
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  RANK INIT
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private void initRankConfig() {
-        rankConfig.put("initiate",    new RankData("Initiate",    "§7", "§8[§7Initiate§8]",         100,  1,  1, 0));
-        rankConfig.put("citizen",     new RankData("Citizen",     "§f", "§7[§fCitizen§7]",           250,  1,  1, 1));
-        rankConfig.put("resident",    new RankData("Resident",    "§a", "§a[Resident]",               300,  2,  2, 2));
-        rankConfig.put("valiant",     new RankData("Valiant",     "§e", "§e[Valiant]",                400,  3,  2, 3));
-        rankConfig.put("sovereign",   new RankData("Sovereign",   "§6", "§6[§lSovereign§6]",          550,  5,  3, 4));
-        rankConfig.put("ethereal",    new RankData("Ethereal",    "§b", "§b[§lEthereal§b]",           750,  8,  5, 5));
-        rankConfig.put("luminescent", new RankData("Luminescent", "§d", "§d[§l✦Luminescent§d]",     1000, 12,  7, 6));
-        rankConfig.put("celestial",   new RankData("Celestial",   "§5", "§5[§l★Celestial★§5]",      1500, 18,  9, 7));
-        rankConfig.put("ascended",    new RankData("Ascended",    "§c", "§c[§4§l⚡ASCENDED⚡§c]",   2000, 25, 12, 8));
+        rankConfig.put("initiate",    new RankData("Initiate",    "§7", "§8[§7Initiate§8]",       100,  1,  1, 0));
+        rankConfig.put("citizen",     new RankData("Citizen",     "§f", "§7[§fCitizen§7]",         250,  1,  1, 1));
+        rankConfig.put("resident",    new RankData("Resident",    "§a", "§a[Resident]",             300,  2,  2, 2));
+        rankConfig.put("valiant",     new RankData("Valiant",     "§e", "§e[Valiant]",              400,  3,  2, 3));
+        rankConfig.put("sovereign",   new RankData("Sovereign",   "§6", "§6[§lSovereign§6]",        550,  5,  3, 4));
+        rankConfig.put("ethereal",    new RankData("Ethereal",    "§b", "§b[§lEthereal§b]",         750,  8,  5, 5));
+        rankConfig.put("luminescent", new RankData("Luminescent", "§d", "§d[§l✦Luminescent§d]",   1000, 12,  7, 6));
+        rankConfig.put("celestial",   new RankData("Celestial",   "§5", "§5[§l★Celestial★§5]",    1500, 18,  9, 7));
+        rankConfig.put("ascended",    new RankData("Ascended",    "§c", "§c[§4§l⚡ASCENDED⚡§c]", 2000, 25, 12, 8));
         plugin.getLogger().info("[Rank] Loaded " + rankConfig.size() + " ranks.");
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ✅ REWORK: CLEARLAG SCHEDULER
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
+    //  CLEARLAG SCHEDULER
+    // ============================================================
 
     private void startClearlagScheduler() {
-        // Every 5 minutes = 6000 ticks
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (clearlagRunning) return;
             clearlagRunning = true;
@@ -122,7 +120,6 @@ public class LobbySystem {
 
     private void runClearlagCountdown(boolean isManual) {
         if (isManual) {
-            // Manual = langsung countdown 10 detik
             broadcastClearlag(
                     "",
                     "§8[§c§l⚡ CLEARLAG§8] §eAdmin triggered a manual clearlag!",
@@ -137,8 +134,7 @@ public class LobbySystem {
             return;
         }
 
-        // ── Auto clearlag warnings ──
-        // T+0s   → 5 minutes warning
+        // T+0s: 5 minutes
         broadcastClearlag(
                 "",
                 "§8[§7☁ CLEARLAG§8] §fItems will be cleared in §e§l5 minutes§f.",
@@ -146,7 +142,7 @@ public class LobbySystem {
                 Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1f
         );
 
-        // T+60s  → 4 minutes
+        // T+60s: 4 minutes
         Bukkit.getScheduler().runTaskLater(plugin, () ->
                 broadcastClearlag(
                         "",
@@ -155,7 +151,7 @@ public class LobbySystem {
                         Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1f
                 ), 60 * 20L);
 
-        // T+120s → 3 minutes
+        // T+120s: 3 minutes
         Bukkit.getScheduler().runTaskLater(plugin, () ->
                 broadcastClearlag(
                         "",
@@ -164,7 +160,7 @@ public class LobbySystem {
                         Sound.BLOCK_NOTE_BLOCK_PLING, 0.7f, 1f
                 ), 120 * 20L);
 
-        // T+180s → 2 minutes
+        // T+180s: 2 minutes
         Bukkit.getScheduler().runTaskLater(plugin, () ->
                 broadcastClearlag(
                         "",
@@ -173,7 +169,7 @@ public class LobbySystem {
                         Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, 0.9f
                 ), 180 * 20L);
 
-        // T+240s → 1 minute + pickup reminder
+        // T+240s: 1 minute
         Bukkit.getScheduler().runTaskLater(plugin, () ->
                 broadcastClearlag(
                         "",
@@ -183,24 +179,21 @@ public class LobbySystem {
                         Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 0.8f
                 ), 240 * 20L);
 
-        // T+250s → countdown 10 detik
+        // T+250s: 10 second countdown
         Bukkit.getScheduler().runTaskLater(plugin, () ->
                 scheduleCountdown(0L), 250 * 20L);
 
-        // T+300s → execute
+        // T+300s: execute
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             executeClearlag();
             clearlagRunning = false;
         }, 300 * 20L);
     }
 
-    /**
-     * Schedule the 10-second countdown starting at baseDelay
-     */
     private void scheduleCountdown(long baseDelay) {
         for (int sec = 10; sec >= 1; sec--) {
             final int s = sec;
-            long delay = baseDelay + (long)(10 - sec) * 20L;
+            long delay  = baseDelay + (long)(10 - sec) * 20L;
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 String color;
@@ -208,13 +201,10 @@ public class LobbySystem {
                 float  pitch;
 
                 if (s > 5) {
-                    // 10-6: yellow
                     color = "§e"; sound = Sound.BLOCK_NOTE_BLOCK_PLING; pitch = 0.9f;
                 } else if (s > 2) {
-                    // 5-3: orange
                     color = "§6"; sound = Sound.BLOCK_NOTE_BLOCK_PLING; pitch = 1.0f;
                 } else {
-                    // 2-1: red + bass
                     color = "§c"; sound = Sound.BLOCK_NOTE_BLOCK_BASS;  pitch = 1.2f;
                 }
 
@@ -238,19 +228,18 @@ public class LobbySystem {
                 }
             }
         }
-
         final int total = count;
         broadcastClearlag(
                 "",
-                "§8[§a§l✔ CLEARLAG§8] §fCleared §a§l" + total + " §fitem"
-                        + (total == 1 ? "" : "s") + "§7. Server has been optimized!",
+                "§8[§a§l✔ CLEARLAG§8] §fCleared §a§l" + total
+                        + " §fitem" + (total == 1 ? "" : "s")
+                        + "§7. Server has been optimized!",
                 "",
                 Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f
         );
         plugin.getLogger().info("[ClearLag] Cleared " + total + " items.");
     }
 
-    /** Broadcast with surrounding empty lines */
     private void broadcastClearlag(String before, String msg, String after,
                                    Sound sound, float vol, float pitch) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -261,7 +250,6 @@ public class LobbySystem {
         }
     }
 
-    /** Broadcast single line (no surrounding empty lines) */
     private void broadcastClearlag(String msg, Sound sound, float vol, float pitch) {
         broadcastClearlag("", msg, "", sound, vol, pitch);
     }
@@ -276,9 +264,9 @@ public class LobbySystem {
         runClearlagCountdown(true);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ✅ REWORK: SCOREBOARD
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
+    //  SCOREBOARD
+    // ============================================================
 
     public void updateScoreboard(Player player) {
         UUID     uuid   = player.getUniqueId();
@@ -289,25 +277,20 @@ public class LobbySystem {
         int      pt     = playtime.getOrDefault(uuid, 0);
         int      online = Bukkit.getOnlinePlayers().size();
 
-        // ── HP ──
+        // HP
         double maxHp = 20.0;
         try {
             var attr = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             if (attr != null) maxHp = attr.getValue();
         } catch (Exception ignored) {}
-        double currentHp = Math.max(0, player.getHealth());
 
-        // HP color: green > 50%, yellow > 25%, red otherwise
-        String hpColor;
-        double hpPercent = currentHp / maxHp;
-        if      (hpPercent > 0.5) hpColor = "§a";
-        else if (hpPercent > 0.25) hpColor = "§e";
-        else                       hpColor = "§c";
+        double currentHp  = Math.max(0, player.getHealth());
+        double hpPercent  = currentHp / maxHp;
+        String hpColor    = hpPercent > 0.5 ? "§a" : hpPercent > 0.25 ? "§e" : "§c";
+        String hpStr      = hpColor + String.format("%.0f", currentHp)
+                          + "§7/§a" + String.format("%.0f", maxHp) + " §c❤";
 
-        String hpStr = hpColor + String.format("%.0f", currentHp)
-                + "§7/§a" + String.format("%.0f", maxHp) + " §c❤";
-
-        // ── Mode & Job ──
+        // Mode
         String modeName = cap(currentServer);
         try {
             if (plugin.getEconomyManager() != null)
@@ -315,6 +298,7 @@ public class LobbySystem {
                         plugin.getEconomyManager().getPlayerMode(player));
         } catch (Exception ignored) {}
 
+        // Job
         String job = "§7-";
         try {
             if (plugin.getJobSystem() != null) {
@@ -323,10 +307,10 @@ public class LobbySystem {
             }
         } catch (Exception ignored) {}
 
-        // ── K/D ──
+        // K/D
         String kd = String.format("§a%d §8/ §c%d", k, d);
 
-        // ── Scoreboard setup ──
+        // Setup scoreboard
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         if (manager == null) return;
 
@@ -344,40 +328,22 @@ public class LobbySystem {
                 "§b§l« §f§lKZ §b§lSERVER §b§l»");
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        // ── Lines ──
-        // Setiap baris harus unique! Pakai invisible chars (§r + spasi berbeda)
         int s = 15;
-
-        // Header
-        line(obj, "§r§b§m────────────────§r", s--);
-
-        // Player info
+        line(obj, "§r§b§m----------------§r",          s--);
         line(obj, " §f" + rd.color() + "§l" + player.getName(), s--);
-        line(obj, " " + rd.chatTag(), s--);
-
-        // Separator
-        line(obj, "§r§7§m────────────────§r", s--);
-
-        // Stats
-        line(obj, " §f❤ §r" + hpStr, s--);
-        line(obj, " §f⭐ §7Bal: §a" + formatCoins(bal), s--);
-        line(obj, " §f💼 §7Job: " + job, s--);
-
-        // Separator
-        line(obj, "§r§6§m────────────────§r", s--);
-
-        // Server info
+        line(obj, " " + rd.chatTag(),                  s--);
+        line(obj, "§r§7§m----------------§r",          s--);
+        line(obj, " §f❤ §r" + hpStr,                   s--);
+        line(obj, " §f⭐ §7Bal: " + formatCoins(bal),   s--);
+        line(obj, " §f💼 §7Job: " + job,                s--);
+        line(obj, "§r§6§m----------------§r",          s--);
         line(obj, " §f🌍 §7" + cap(currentServer) + " §8› " + modeName, s--);
-        line(obj, " §f⚔ §7" + kd, s--);
-        line(obj, " §f⏱ §7" + fmtPlaytime(pt), s--);
-
-        // Separator
-        line(obj, "§r§a§m────────────────§r", s--);
-
-        // Footer
-        line(obj, " §f👥 §7Online: §a" + online, s--);
-        line(obj, " §8play.kzserver.com", s--);
-        line(obj, "§r§b§m────────────────§r ", s);
+        line(obj, " §f⚔  §7" + kd,                    s--);
+        line(obj, " §f⏱  §7" + fmtPlaytime(pt),        s--);
+        line(obj, "§r§a§m----------------§r",          s--);
+        line(obj, " §f👥 §7Online: §a" + online,        s--);
+        line(obj, " §8play.kzserver.com",              s--);
+        line(obj, "§r§b§m----------------§r ",         s);
     }
 
     private void line(Objective obj, String text, int score) {
@@ -388,43 +354,9 @@ public class LobbySystem {
         for (Player p : Bukkit.getOnlinePlayers()) updateScoreboard(p);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX: FORMAT COINS
-    // ═══════════════════════════════════════════════════════════// ✅ KEEP yang ini saja
-public String formatCoins(double amount) {
-    if (amount < 0) amount = 0;
-    if (amount >= 1_000_000_000_000.0) {
-        double v = amount / 1_000_000_000_000.0;
-        return "§d" + (v % 1 == 0 ? String.format("%.0fT", v) : String.format("%.1fT", v));
-    }
-    if (amount >= 1_000_000_000.0) {
-        double v = amount / 1_000_000_000.0;
-        return "§b" + (v % 1 == 0 ? String.format("%.0fB", v) : String.format("%.1fB", v));
-    }
-    if (amount >= 1_000_000.0) {
-        double v = amount / 1_000_000.0;
-        return "§6" + (v % 1 == 0 ? String.format("%.0fM", v) : String.format("%.1fM", v));
-    }
-    if (amount >= 1_000.0) {
-        double v = amount / 1_000.0;
-        return "§e" + (v % 1 == 0 ? String.format("%.0fK", v) : String.format("%.1fK", v));
-    }
-    return "§f" + String.format("%.0f", amount);
-}═════
-
-    /**
-     * Format coins dengan warna:
-     *   999       → §f999
-     *   1,000     → §e1K
-     *   1,500     → §e1.5K
-     *   1,000,000 → §61M
-     *   1,000,000,000 → §b1B
-     */
-  
-
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  NPC SKIN SYSTEM
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private void fetchSkin(String username, java.util.function.Consumer<String[]> callback) {
         String lower = username.toLowerCase();
@@ -518,9 +450,9 @@ public String formatCoins(double amount) {
         return head;
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  NPC CREATE
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void createNPC(Player player, String mode, String displayName,
                           String targetServer, String skinOwner) {
@@ -541,9 +473,8 @@ public String formatCoins(double amount) {
 
             fetchSkin(skinOwner, skinData -> {
                 if (skinData == null) {
-                    player.sendMessage(
-                            "§c§lKZ §8» §cSkin fetch failed for §f" + skinOwner
-                            + "§c. NPC created without skin.");
+                    player.sendMessage("§c§lKZ §8» §cSkin fetch failed for §f"
+                            + skinOwner + "§c. NPC created without skin.");
                     return;
                 }
                 Entity entity = Bukkit.getEntity(npc.getUniqueId());
@@ -595,12 +526,13 @@ public String formatCoins(double amount) {
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  NPC RESPAWN
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private void respawnNPCEntities() {
         int ok = 0, fail = 0;
+
         for (var e : npcLocations.entrySet()) {
             String   key = e.getKey();
             Location loc = e.getValue();
@@ -634,13 +566,14 @@ public String formatCoins(double amount) {
                 fail++;
             }
         }
+
         if (ok > 0 || fail > 0)
             plugin.getLogger().info("[NPC] Respawned " + ok + " | Failed " + fail);
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  LOAD / SAVE
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private void loadData() {
         dataFile = new File(plugin.getDataFolder(), "lobby.yml");
@@ -649,13 +582,16 @@ public String formatCoins(double amount) {
                 plugin.getDataFolder().mkdirs();
                 dataFile.createNewFile();
             } catch (IOException e) {
-                plugin.getLogger().severe("[Lobby] Failed to create lobby.yml: " + e.getMessage());
+                plugin.getLogger().severe(
+                        "[Lobby] Failed to create lobby.yml: " + e.getMessage());
             }
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
+        // Lobby spawn
         if (dataConfig.contains("lobby")) {
-            World w = Bukkit.getWorld(dataConfig.getString("lobby.world", "world"));
+            World w = Bukkit.getWorld(
+                    dataConfig.getString("lobby.world", "world"));
             if (w != null) {
                 lobbySpawn = new Location(w,
                         dataConfig.getDouble("lobby.x"),
@@ -666,6 +602,7 @@ public String formatCoins(double amount) {
             }
         }
 
+        // Mode spawns
         if (dataConfig.contains("spawns")) {
             var sec = dataConfig.getConfigurationSection("spawns");
             if (sec != null) {
@@ -682,17 +619,23 @@ public String formatCoins(double amount) {
             }
         }
 
+        // Player stats
         if (dataConfig.contains("stats")) {
             var sec = dataConfig.getConfigurationSection("stats");
             if (sec != null) {
                 for (String key : sec.getKeys(false)) {
                     try {
                         UUID uuid = UUID.fromString(key);
-                        ranks.put(uuid,     dataConfig.getString("stats." + key + ".rank",     "initiate"));
-                        kills.put(uuid,     dataConfig.getInt("stats." + key + ".kills",       0));
-                        deaths.put(uuid,    dataConfig.getInt("stats." + key + ".deaths",      0));
-                        playtime.put(uuid,  dataConfig.getInt("stats." + key + ".playtime",    0));
-                        firstJoin.put(uuid, dataConfig.getBoolean("stats." + key + ".joined",  false));
+                        ranks.put(uuid,
+                                dataConfig.getString("stats." + key + ".rank",     "initiate"));
+                        kills.put(uuid,
+                                dataConfig.getInt("stats." + key + ".kills",       0));
+                        deaths.put(uuid,
+                                dataConfig.getInt("stats." + key + ".deaths",      0));
+                        playtime.put(uuid,
+                                dataConfig.getInt("stats." + key + ".playtime",    0));
+                        firstJoin.put(uuid,
+                                dataConfig.getBoolean("stats." + key + ".joined",  false));
                     } catch (IllegalArgumentException e) {
                         plugin.getLogger().warning("[Lobby] Invalid UUID: " + key);
                     }
@@ -700,6 +643,7 @@ public String formatCoins(double amount) {
             }
         }
 
+        // NPCs
         if (dataConfig.contains("npcs")) {
             var sec = dataConfig.getConfigurationSection("npcs");
             if (sec != null) {
@@ -794,9 +738,9 @@ public String formatCoins(double amount) {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  JOIN / QUIT
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void handleJoin(Player player) {
         UUID uuid = player.getUniqueId();
@@ -859,9 +803,9 @@ public String formatCoins(double amount) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             RankData rd = getRankData("initiate");
             send(player, "");
-            send(player, "§b§l┌──────────────────────────────────┐");
-            send(player, "§b§l│    §f§lWELCOME TO §b§lKZ SERVER!       §b§l│");
-            send(player, "§b§l└──────────────────────────────────┘");
+            send(player, "§b§l+----------------------------------+");
+            send(player, "§b§l|  §f§lWELCOME TO §b§lKZ SERVER!        §b§l|");
+            send(player, "§b§l+----------------------------------+");
             send(player, "");
             send(player, "  §7Hey §b" + player.getName() + "§7, welcome aboard!");
             send(player, "");
@@ -899,9 +843,9 @@ public String formatCoins(double amount) {
             double   bal = getBalance(player);
 
             send(player, "");
-            send(player, "§b§l┌──────────────────────────────────┐");
-            send(player, "§b§l│         §f§lWELCOME BACK!            §b§l│");
-            send(player, "§b§l└──────────────────────────────────┘");
+            send(player, "§b§l+----------------------------------+");
+            send(player, "§b§l|        §f§lWELCOME BACK!            §b§l|");
+            send(player, "§b§l+----------------------------------+");
             send(player, "");
             send(player, "  §7Welcome back, §b" + player.getName() + "§7!");
             send(player, "  §f💰 §7Balance  : " + formatCoins(bal));
@@ -927,9 +871,9 @@ public String formatCoins(double amount) {
         saveData();
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  VANISH
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public boolean toggleVanish(Player player) {
         UUID uuid = player.getUniqueId();
@@ -940,9 +884,9 @@ public String formatCoins(double amount) {
 
     public boolean isVanished(UUID uuid) { return vanished.contains(uuid); }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  CHAT
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void handleChat(AsyncPlayerChatEvent event) {
         Player   player = event.getPlayer();
@@ -951,9 +895,9 @@ public String formatCoins(double amount) {
                 + player.getName() + " §8» §f%2$s");
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  NAMETAG
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void updateNametag(Player player) {
         RankData rd  = getRankData(getRank(player.getUniqueId()));
@@ -972,7 +916,7 @@ public String formatCoins(double amount) {
             player.setScoreboard(board);
         }
 
-        String teamName = ("rk" + rd.priority() + player.getName());
+        String teamName = "rk" + rd.priority() + player.getName();
         if (teamName.length() > 16) teamName = teamName.substring(0, 16);
 
         Team team = board.getTeam(teamName);
@@ -1004,20 +948,20 @@ public String formatCoins(double amount) {
 
     private String colorName(String code) {
         return switch (code) {
-            case "§0" -> "BLACK";      case "§1" -> "DARK_BLUE";
-            case "§2" -> "DARK_GREEN"; case "§3" -> "DARK_AQUA";
-            case "§4" -> "DARK_RED";   case "§5" -> "DARK_PURPLE";
-            case "§6" -> "GOLD";       case "§7" -> "GRAY";
-            case "§8" -> "DARK_GRAY";  case "§9" -> "BLUE";
-            case "§a" -> "GREEN";      case "§b" -> "AQUA";
-            case "§c" -> "RED";        case "§d" -> "LIGHT_PURPLE";
-            case "§e" -> "YELLOW";     default   -> "WHITE";
+            case "§0" -> "BLACK";       case "§1" -> "DARK_BLUE";
+            case "§2" -> "DARK_GREEN";  case "§3" -> "DARK_AQUA";
+            case "§4" -> "DARK_RED";    case "§5" -> "DARK_PURPLE";
+            case "§6" -> "GOLD";        case "§7" -> "GRAY";
+            case "§8" -> "DARK_GRAY";   case "§9" -> "BLUE";
+            case "§a" -> "GREEN";       case "§b" -> "AQUA";
+            case "§c" -> "RED";         case "§d" -> "LIGHT_PURPLE";
+            case "§e" -> "YELLOW";      default   -> "WHITE";
         };
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  NPC - REMOVE / CLICK / LIST
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void removeNearbyNPC(Player player) {
         int removed = 0;
@@ -1128,18 +1072,18 @@ public String formatCoins(double amount) {
 
     public String getServerForMode(String mode) {
         return switch (mode.toLowerCase()) {
-            case "survival", "vanilla"     -> "survival";
-            case "oneblock", "skyblock"    -> "void";
-            case "island", "acid"          -> "custom";
-            default                        -> "lobby";
+            case "survival", "vanilla"  -> "survival";
+            case "oneblock", "skyblock" -> "void";
+            case "island", "acid"       -> "custom";
+            default                     -> "lobby";
         };
     }
 
     public void listNPCs(Player player) {
         player.sendMessage("");
-        player.sendMessage("§b§l┌──────────────────────────────────┐");
-        player.sendMessage("§b§l│          §f§lNPC LIST               §b§l│");
-        player.sendMessage("§b§l└──────────────────────────────────┘");
+        player.sendMessage("§b§l+----------------------------------+");
+        player.sendMessage("§b§l|         §f§lNPC LIST               §b§l|");
+        player.sendMessage("§b§l+----------------------------------+");
         if (npcModes.isEmpty()) {
             player.sendMessage("  §7No NPCs registered.");
         } else {
@@ -1150,10 +1094,11 @@ public String formatCoins(double amount) {
                 String skin = npcSkinOwners.getOrDefault(k, "§8none");
                 player.sendMessage("  §7" + i + ". §b"
                         + npcNames.getOrDefault(k, "?")
-                        + " §8│ §7" + e.getValue()
-                        + " §8│ §e" + npcServers.getOrDefault(k, "?")
-                        + " §8│ 🎭 §7" + skin
-                        + " §8│ " + (npcEntityMap.containsKey(k) ? "§a✔ Online" : "§c✘ Missing"));
+                        + " §8| §7" + e.getValue()
+                        + " §8| §e" + npcServers.getOrDefault(k, "?")
+                        + " §8| §7" + skin
+                        + " §8| " + (npcEntityMap.containsKey(k)
+                                ? "§a✔ Online" : "§c✘ Missing"));
             }
         }
         player.sendMessage("  §7Total: §f" + npcModes.size() + " NPC(s)");
@@ -1161,9 +1106,9 @@ public String formatCoins(double amount) {
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  MISC
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public void trackPlaytime() {
         for (Player p : Bukkit.getOnlinePlayers())
@@ -1200,19 +1145,21 @@ public String formatCoins(double amount) {
         } catch (Exception ignored) {}
 
         viewer.sendMessage("");
-        viewer.sendMessage("§b§l┌──────────────────────────────────┐");
-        viewer.sendMessage("§b§l│         §f§lPLAYER STATS             §b§l│");
-        viewer.sendMessage("§b§l└──────────────────────────────────┘");
+        viewer.sendMessage("§b§l+----------------------------------+");
+        viewer.sendMessage("§b§l|        §f§lPLAYER STATS             §b§l|");
+        viewer.sendMessage("§b§l+----------------------------------+");
         viewer.sendMessage("");
         viewer.sendMessage("  §f👤 §7Player   : " + rd.color() + target.getName());
         viewer.sendMessage("  §f👑 §7Rank     : " + rd.chatTag());
-        viewer.sendMessage("  §f🎮 §7Platform : §f" + platforms.getOrDefault(uuid, "Java"));
+        viewer.sendMessage("  §f🎮 §7Platform : §f"
+                + platforms.getOrDefault(uuid, "Java"));
         viewer.sendMessage("");
         viewer.sendMessage("  §f💰 §7Balance  : " + formatCoins(bal));
         viewer.sendMessage("  §f💼 §7Job      : §f" + job);
-        viewer.sendMessage("  §f🏠 §7Max Land : §f" + rd.maxLandSize() + "x" + rd.maxLandSize());
+        viewer.sendMessage("  §f🏠 §7Max Land : §f"
+                + rd.maxLandSize() + "x" + rd.maxLandSize());
         viewer.sendMessage("");
-        viewer.sendMessage("  §f⚔  §7Kills   : §a" + k);
+        viewer.sendMessage("  §f⚔  §7Kills    : §a" + k);
         viewer.sendMessage("  §f💀 §7Deaths   : §c" + d);
         viewer.sendMessage("  §f📊 §7K/D      : §e" + String.format("%.2f", kd));
         viewer.sendMessage("  §f⏱  §7Playtime : §7" + fmtPlaytime(pt));
@@ -1220,9 +1167,9 @@ public String formatCoins(double amount) {
         viewer.playSound(viewer.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  GETTERS / SETTERS
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     public Location getLobbySpawn()           { return lobbySpawn; }
     public void     setLobbySpawn(Location l) { lobbySpawn = l; saveData(); }
@@ -1231,11 +1178,15 @@ public String formatCoins(double amount) {
         modeSpawns.put(mode.toLowerCase(), l); saveData();
     }
 
-    public String  getRank(UUID uuid)   { return ranks.getOrDefault(uuid, "initiate"); }
-    public void    setRank(UUID uuid, String rank) {
+    public String getRank(UUID uuid) {
+        return ranks.getOrDefault(uuid, "initiate");
+    }
+
+    public void setRank(UUID uuid, String rank) {
         String r = rank.toLowerCase();
         if (!rankConfig.containsKey(r)) {
-            plugin.getLogger().warning("[Rank] Unknown rank: " + rank); return;
+            plugin.getLogger().warning("[Rank] Unknown rank: " + rank);
+            return;
         }
         ranks.put(uuid, r);
         saveData();
@@ -1243,7 +1194,7 @@ public String formatCoins(double amount) {
         if (p != null && p.isOnline()) {
             updateNametag(p);
             updateScoreboard(p);
-            p.sendMessage("§b§lKZ §8» §7Your rank has been updated → "
+            p.sendMessage("§b§lKZ §8» §7Your rank has been updated to "
                     + getRankData(r).chatTag() + "§7!");
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         }
@@ -1256,21 +1207,21 @@ public String formatCoins(double amount) {
     public String  getRankDisplay(String rank) { return getRankData(rank).chatTag(); }
     public int     getMaxLandSize(String rank) { return getRankData(rank).maxLandSize(); }
     public int     getMaxClaims(String rank)   { return getRankData(rank).maxClaims(); }
-    public int     getMaxHomes(String rank)     { return getRankData(rank).maxHomes(); }
-    public String  getPlatform(UUID uuid)       { return platforms.getOrDefault(uuid, "Java"); }
-    public boolean isMaintenance()              { return maintenance; }
-    public int     getTotalPlayers()            { return totalPlayers; }
-    public String  getCurrentServer()           { return currentServer; }
-    public boolean isLobbyServer()              { return "lobby".equalsIgnoreCase(currentServer); }
-    public void    setMaintenance(boolean val)  { maintenance = val; saveData(); }
+    public int     getMaxHomes(String rank)    { return getRankData(rank).maxHomes(); }
+    public String  getPlatform(UUID uuid)      { return platforms.getOrDefault(uuid, "Java"); }
+    public boolean isMaintenance()             { return maintenance; }
+    public int     getTotalPlayers()           { return totalPlayers; }
+    public String  getCurrentServer()          { return currentServer; }
+    public boolean isLobbyServer()             { return "lobby".equalsIgnoreCase(currentServer); }
+    public void    setMaintenance(boolean val) { maintenance = val; saveData(); }
 
     public Map<String, RankData> getAllRanks() {
         return Collections.unmodifiableMap(rankConfig);
     }
 
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
     //  UTILITIES
-    // ════════════════════════════════════════════════════════════════
+    // ============================================================
 
     private double getBalance(Player player) {
         try {
@@ -1280,7 +1231,7 @@ public String formatCoins(double amount) {
         return 0;
     }
 
-    private void send(Player player, String msg) { player.sendMessage(msg); }
+    private void send(Player p, String msg) { p.sendMessage(msg); }
 
     private String cap(String s) {
         if (s == null || s.isEmpty()) return s;
@@ -1299,19 +1250,27 @@ public String formatCoins(double amount) {
         if (amount < 0) amount = 0;
         if (amount >= 1_000_000_000_000.0) {
             double v = amount / 1_000_000_000_000.0;
-            return "§d" + (v % 1 == 0 ? String.format("%.0fT", v) : String.format("%.1fT", v));
+            return "§d" + (v % 1 == 0
+                    ? String.format("%.0fT", v)
+                    : String.format("%.1fT", v));
         }
         if (amount >= 1_000_000_000.0) {
             double v = amount / 1_000_000_000.0;
-            return "§b" + (v % 1 == 0 ? String.format("%.0fB", v) : String.format("%.1fB", v));
+            return "§b" + (v % 1 == 0
+                    ? String.format("%.0fB", v)
+                    : String.format("%.1fB", v));
         }
         if (amount >= 1_000_000.0) {
             double v = amount / 1_000_000.0;
-            return "§6" + (v % 1 == 0 ? String.format("%.0fM", v) : String.format("%.1fM", v));
+            return "§6" + (v % 1 == 0
+                    ? String.format("%.0fM", v)
+                    : String.format("%.1fM", v));
         }
         if (amount >= 1_000.0) {
             double v = amount / 1_000.0;
-            return "§e" + (v % 1 == 0 ? String.format("%.0fK", v) : String.format("%.1fK", v));
+            return "§e" + (v % 1 == 0
+                    ? String.format("%.0fK", v)
+                    : String.format("%.1fK", v));
         }
         return "§f" + String.format("%.0f", amount);
     }
