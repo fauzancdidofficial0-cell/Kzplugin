@@ -15,7 +15,10 @@
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+        <!-- ✅ FIX: Tambah semua encoding properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
     </properties>
 
     <repositories>
@@ -34,7 +37,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- HikariCP (koneksi MySQL) -->
+        <!-- HikariCP -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
@@ -61,10 +64,16 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <!-- ✅ FIX: Tambah encoding di compiler plugin -->
+                    <encoding>UTF-8</encoding>
+                    <!-- ✅ FIX: Aktifkan support unicode chars di comments -->
+                    <compilerArgs>
+                        <arg>-J-Dfile.encoding=UTF-8</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
-            <!-- Shade: gabungin HikariCP & MySQL ke dalam jar -->
+            <!-- Shade -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -77,7 +86,6 @@
                         </goals>
                         <configuration>
                             <relocations>
-                                <!-- Hindari konflik sama plugin lain -->
                                 <relocation>
                                     <pattern>com.zaxxer.hikari</pattern>
                                     <shadedPattern>com.kz.plugin.libs.hikari</shadedPattern>
