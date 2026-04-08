@@ -232,7 +232,7 @@ commands:
   help:
     description: Server help & commands
     usage: /help
-    aliases: [?]
+    aliases: [help]
     permission: kzplugin.cmd.help
   stats:
     description: Player statistics
