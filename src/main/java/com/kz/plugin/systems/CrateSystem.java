@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -30,28 +31,30 @@ public class CrateSystem {
     private final NamespacedKey KEY_TAG;
     private final NamespacedKey KEY_CRATE_ID;
 
-    private final Map<String, CrateData> crates = new LinkedHashMap<>();
-    private final Map<String, String> crateLocations = new LinkedHashMap<>();
-    private final Map<UUID, String> hologramEntities = new HashMap<>();
-    private final Set<UUID> animatingPlayers = new HashSet<>();
-    private final Map<UUID, String> editingPlayers = new HashMap<>();
+    private final Map<String, CrateData>       crates          = new LinkedHashMap<>();
+    private final Map<String, String>           crateLocations  = new LinkedHashMap<>();
+    private final Map<UUID, String>             hologramEntities= new HashMap<>();
+    private final Set<UUID>                     animatingPlayers= new HashSet<>();
+    private final Map<UUID, String>             editingPlayers  = new HashMap<>();
+    private final Map<UUID, Inventory>          spinningGUIs    = new HashMap<>();
+    private final Map<UUID, BukkitRunnable>     spinTasks       = new HashMap<>();
 
     // ════════════════════════════════════════════════════════════════
     //  RARITY
     // ════════════════════════════════════════════════════════════════
 
     public enum Rarity {
-        EASY    ("§a§lEasy",      "§a", Material.LIME_STAINED_GLASS_PANE,    50.0, 0),
-        MID     ("§e§lMid",       "§e", Material.YELLOW_STAINED_GLASS_PANE,  25.0, 1),
-        HARD    ("§6§lHard",      "§6", Material.ORANGE_STAINED_GLASS_PANE,  15.0, 2),
-        HARDCORE("§c§lHardcore",  "§c", Material.RED_STAINED_GLASS_PANE,      8.0, 3),
-        EXCLUSIVE("§d§lExclusive","§d", Material.MAGENTA_STAINED_GLASS_PANE,  2.0, 4);
+        EASY     ("§a§lEasy",      "§a", Material.LIME_STAINED_GLASS_PANE,    50.0, 0),
+        MID      ("§e§lMid",       "§e", Material.YELLOW_STAINED_GLASS_PANE,  25.0, 1),
+        HARD     ("§6§lHard",      "§6", Material.ORANGE_STAINED_GLASS_PANE,  15.0, 2),
+        HARDCORE ("§c§lHardcore",  "§c", Material.RED_STAINED_GLASS_PANE,      8.0, 3),
+        EXCLUSIVE("§d§lExclusive", "§d", Material.MAGENTA_STAINED_GLASS_PANE,  2.0, 4);
 
-        public final String displayName;
-        public final String color;
+        public final String   displayName;
+        public final String   color;
         public final Material paneMaterial;
-        public final double weight;
-        public final int column;
+        public final double   weight;
+        public final int      column;
 
         Rarity(String d, String c, Material m, double w, int col) {
             displayName = d; color = c; paneMaterial = m; weight = w; column = col;
@@ -63,11 +66,11 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     public static class CrateData {
-        public String id, title, description1, description2, shulkerColor;
+        public String    id, title, description1, description2, shulkerColor;
         public ItemStack keyItem;
-        public Location location;
-        public List<UUID> hologramIds = new ArrayList<>();
-        public Map<Rarity, List<ItemStack>> rewards = new EnumMap<>(Rarity.class);
+        public Location  location;
+        public List<UUID>                hologramIds = new ArrayList<>();
+        public Map<Rarity, List<ItemStack>> rewards  = new EnumMap<>(Rarity.class);
 
         public CrateData(String id) {
             this.id = id;
@@ -81,7 +84,7 @@ public class CrateSystem {
         }
 
         public Material getShulkerMaterial() {
-            try { return Material.valueOf(shulkerColor.toUpperCase() + "_SHULKER_BOX"); }
+            try   { return Material.valueOf(shulkerColor.toUpperCase() + "_SHULKER_BOX"); }
             catch (Exception e) { return Material.PURPLE_SHULKER_BOX; }
         }
     }
@@ -91,7 +94,7 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     public CrateSystem(KZPlugin plugin) {
-        this.plugin = plugin;
+        this.plugin  = plugin;
         KEY_TAG      = new NamespacedKey(plugin, "crate_key");
         KEY_CRATE_ID = new NamespacedKey(plugin, "crate_id");
         loadData();
@@ -156,16 +159,11 @@ public class CrateSystem {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX 1: translateColor() - Support § dan & color codes
+    //  COLOR TRANSLATE
     // ════════════════════════════════════════════════════════════════
 
-    /**
-     * Translate & color codes → § color codes
-     * Supports both & and § input
-     */
     private String translateColor(String input) {
         if (input == null) return "";
-        // Translate &x → §x untuk semua color codes (0-9, a-f, l, m, n, o, r, k)
         return ChatColor.translateAlternateColorCodes('&', input);
     }
 
@@ -181,7 +179,6 @@ public class CrateSystem {
         }
 
         ItemStack key = buildKeyItem(crate, amount);
-
         HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(key);
         if (!overflow.isEmpty()) {
             for (ItemStack drop : overflow.values())
@@ -194,16 +191,11 @@ public class CrateSystem {
         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f);
     }
 
-    /**
-     * Build a ready-to-give key item (stamped + lore)
-     */
     private ItemStack buildKeyItem(CrateData crate, int amount) {
-        ItemStack key = crate.keyItem.clone();
+        ItemStack key  = crate.keyItem.clone();
         key.setAmount(amount);
-
-        ItemMeta meta = key.getItemMeta();
+        ItemMeta meta  = key.getItemMeta();
         if (meta != null) {
-            // Rebuild lore (jangan duplikat kalau sudah ada)
             List<String> lore = new ArrayList<>();
             lore.add("");
             lore.add("§8§o[Crate Key]");
@@ -212,29 +204,17 @@ public class CrateSystem {
             meta.setLore(lore);
             key.setItemMeta(meta);
         }
-
         stampKey(key, crate.id);
         return key;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX 2: createKeyItem() - Support color codes di nama key
-    // ════════════════════════════════════════════════════════════════
-
-    /**
-     * Create a key item with color support
-     * Example: /createkey TRIPWIRE_HOOK &e&lLegendary &6&lKey
-     */
     public ItemStack createKeyItem(String crateId, String displayName, Material material) {
         CrateData crate = crates.get(crateId);
         if (crate == null) return null;
-
-        ItemStack key = new ItemStack(material);
-        ItemMeta meta = key.getItemMeta();
+        ItemStack key  = new ItemStack(material);
+        ItemMeta  meta = key.getItemMeta();
         if (meta != null) {
-            // ✅ FIX: Translate color codes (&e&lLegendary → §e§lLegendary)
             meta.setDisplayName(translateColor(displayName));
-
             List<String> lore = new ArrayList<>();
             lore.add("");
             lore.add("§8§o[Crate Key]");
@@ -243,7 +223,6 @@ public class CrateSystem {
             meta.setLore(lore);
             key.setItemMeta(meta);
         }
-
         stampKey(key, crateId);
         return key;
     }
@@ -258,7 +237,6 @@ public class CrateSystem {
         ItemStack handItem = player.getInventory().getItemInMainHand();
         if (handItem.getType() == Material.AIR) {
             player.sendMessage("§c§lKZ §8» §cHold the key item in your main hand!");
-            player.sendMessage("  §7The item you're holding will be used as the crate key.");
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
@@ -268,47 +246,37 @@ public class CrateSystem {
             shulkerMat = Material.valueOf(color.toUpperCase() + "_SHULKER_BOX");
         } catch (Exception e) {
             player.sendMessage("§c§lKZ §8» §cInvalid color: §f" + color);
-            player.sendMessage("  §7Valid: white, orange, magenta, light_blue, yellow,");
-            player.sendMessage("  §7lime, pink, gray, light_gray, cyan, purple, blue,");
-            player.sendMessage("  §7brown, green, red, black");
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
 
-        String crateId = "crate_" + System.currentTimeMillis();
-        CrateData crate = new CrateData(crateId);
-        crate.title        = translateColor(title);        // ✅ Support color di title
+        String    crateId = "crate_" + System.currentTimeMillis();
+        CrateData crate   = new CrateData(crateId);
+        crate.title        = translateColor(title);
         crate.description1 = translateColor(desc1.replace("_", " "));
         crate.description2 = translateColor(desc2.replace("_", " "));
         crate.shulkerColor = color.toUpperCase();
 
-        // ✅ FIX: Clone item + rename dengan keyName yang support color codes
         crate.keyItem = handItem.clone();
         crate.keyItem.setAmount(1);
-
         ItemMeta keyMeta = crate.keyItem.getItemMeta();
         if (keyMeta != null) {
-            // ✅ FIX: Translate &e&lLegendary §6§lKey → §e§lLegendary §6§lKey
             keyMeta.setDisplayName(translateColor(keyName));
             crate.keyItem.setItemMeta(keyMeta);
         }
-
         stampKey(crate.keyItem, crateId);
 
-        // Place shulker
-        Location loc = player.getLocation().getBlock().getLocation();
-        Block block = loc.getBlock();
+        Location loc   = player.getLocation().getBlock().getLocation();
+        Block    block = loc.getBlock();
         block.setType(shulkerMat);
         crate.location = block.getLocation();
 
         String locKey = locationToKey(block.getLocation());
         crateLocations.put(locKey, crateId);
         spawnHolograms(crate);
-
         crates.put(crateId, crate);
         saveData();
 
-        // Give sample key
         ItemStack sampleKey = buildKeyItem(crate, 1);
         player.getInventory().addItem(sampleKey);
 
@@ -316,17 +284,14 @@ public class CrateSystem {
         player.sendMessage("§a§l┌─────────────────────────────────┐");
         player.sendMessage("§a§l│      §f§lCRATE CREATED              §a§l│");
         player.sendMessage("§a§l└─────────────────────────────────┘");
-        player.sendMessage("");
-        player.sendMessage("  §7Title   : " + crate.title);
-        player.sendMessage("  §7Desc    : §f" + crate.description1);
-        player.sendMessage("  §7          §f" + crate.description2);
-        player.sendMessage("  §7Color   : §f" + color);
-        player.sendMessage("  §7Key     : " + getItemDisplayName(crate.keyItem));
-        player.sendMessage("  §7ID      : §8" + crateId);
-        player.sendMessage("");
-        player.sendMessage("  §7🔑 1x sample key added to your inventory!");
+        player.sendMessage("  §7Title : " + crate.title);
+        player.sendMessage("  §7Desc  : §f" + crate.description1);
+        player.sendMessage("  §7        §f" + crate.description2);
+        player.sendMessage("  §7Color : §f" + color);
+        player.sendMessage("  §7Key   : " + getItemDisplayName(crate.keyItem));
+        player.sendMessage("  §7ID    : §8" + crateId);
+        player.sendMessage("  §7🔑 1x sample key added!");
         player.sendMessage("  §7📦 Shift+Left-click crate to add rewards!");
-        player.sendMessage("  §7🎁 Use §f/givekey <player> " + crateId + " <amount>");
         player.sendMessage("");
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
     }
@@ -336,9 +301,9 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     public void deleteCrate(Player player) {
-        Location pLoc = player.getLocation();
-        String foundId = null;
-        double closest = 5.0;
+        Location pLoc    = player.getLocation();
+        String   foundId = null;
+        double   closest = 5.0;
 
         for (Map.Entry<String, CrateData> entry : crates.entrySet()) {
             CrateData crate = entry.getValue();
@@ -374,19 +339,18 @@ public class CrateSystem {
         if (crate.location == null || crate.location.getWorld() == null) return;
         removeHolograms(crate);
 
-        Location base = crate.location.clone().add(0.5, 2.5, 0.5);
+        Location base  = crate.location.clone().add(0.5, 2.5, 0.5);
         String[] lines = {
                 "§b§l" + crate.title,
-                "§7" + crate.description1,
-                "§7" + crate.description2,
+                "§7"   + crate.description1,
+                "§7"   + crate.description2,
                 "§e§oRight-click to open!"
         };
 
         crate.hologramIds.clear();
         for (int i = 0; i < lines.length; i++) {
             Location lineLoc = base.clone().add(0, -i * 0.3, 0);
-            String line = lines[i];
-
+            String   line    = lines[i];
             ArmorStand hologram = crate.location.getWorld().spawn(lineLoc, ArmorStand.class, stand -> {
                 stand.setCustomName(line);
                 stand.setCustomNameVisible(true);
@@ -400,7 +364,6 @@ public class CrateSystem {
                 stand.setCanPickupItems(false);
                 stand.setCollidable(false);
             });
-
             crate.hologramIds.add(hologram.getUniqueId());
             hologramEntities.put(hologram.getUniqueId(), crate.id);
         }
@@ -438,10 +401,10 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     public boolean handleCrateRightClick(Player player, Block block) {
-        String crateId = crateLocations.get(locationToKey(block.getLocation()));
+        String    crateId = crateLocations.get(locationToKey(block.getLocation()));
         if (crateId == null) return false;
-        CrateData crate = crates.get(crateId);
-        if (crate == null) return false;
+        CrateData crate   = crates.get(crateId);
+        if (crate == null)   return false;
 
         if (animatingPlayers.contains(player.getUniqueId())) {
             player.sendMessage("§c§lKZ §8» §cPlease wait for the current animation!");
@@ -460,7 +423,6 @@ public class CrateSystem {
             player.sendMessage("");
             player.sendMessage("§c§lKZ §8» §cYou need a key to open this crate!");
             player.sendMessage("  §7Required: " + getItemDisplayName(crate.keyItem));
-            player.sendMessage("");
             player.sendMessage("  §8§oKeys can only be obtained from the server.");
             player.sendMessage("");
             player.playSound(player.getLocation(), Sound.BLOCK_CHEST_LOCKED, 1f, 1f);
@@ -473,25 +435,27 @@ public class CrateSystem {
     }
 
     public boolean handleCrateLeftClick(Player player, Block block) {
-        String crateId = crateLocations.get(locationToKey(block.getLocation()));
+        String    crateId = crateLocations.get(locationToKey(block.getLocation()));
         if (crateId == null) return false;
-        CrateData crate = crates.get(crateId);
-        if (crate == null) return false;
+        CrateData crate   = crates.get(crateId);
+        if (crate == null)   return false;
         if (!player.hasPermission("kzplugin.admin")) return false;
-
         openEditorGUI(player, crate);
         return true;
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  OPEN ANIMATION
+    //  SPINNING GUI ANIMATION
     // ════════════════════════════════════════════════════════════════
+
+    private static final int    SPIN_GUI_SIZE  = 27;
+    private static final String SPIN_GUI_TITLE = "§8§l✦ §6§lGACHA §8§l✦";
 
     private void startOpenAnimation(Player player, CrateData crate) {
         UUID uuid = player.getUniqueId();
         animatingPlayers.add(uuid);
 
-        Location crateCenter = crate.location.clone().add(0.5, 1.0, 0.5);
+        // Tentukan reward sebelum animasi
         Rarity wonRarity = selectRandomRarity();
         List<ItemStack> rarityRewards = crate.rewards.get(wonRarity);
 
@@ -505,70 +469,278 @@ public class CrateSystem {
             rarityRewards = crate.rewards.get(wonRarity);
         }
 
-        ItemStack reward = rarityRewards.get(
-                ThreadLocalRandom.current().nextInt(rarityRewards.size())).clone();
+        final ItemStack finalReward = rarityRewards
+                .get(ThreadLocalRandom.current().nextInt(rarityRewards.size())).clone();
         final Rarity finalRarity = wonRarity;
-        final ItemStack finalReward = reward;
 
-        new BukkitRunnable() {
-            int tick = 0;
-            final int total = 30;
-            @Override public void run() {
-                if (tick >= total || !player.isOnline()) { this.cancel(); return; }
-                double angle  = (tick * 24) * Math.PI / 180;
-                double radius = 1.0 - (tick * 0.02);
-                Location pLoc = crateCenter.clone().add(
-                        Math.cos(angle) * radius, 0.5 + (tick * 0.03), Math.sin(angle) * radius);
-                player.getWorld().spawnParticle(Particle.END_ROD,  pLoc,        2, 0,   0,   0,   0.01);
-                player.getWorld().spawnParticle(Particle.ENCHANT, crateCenter, 5, 0.5, 0.5, 0.5, 1);
-                if (tick % Math.max(1, 5 - tick / 7) == 0)
-                    player.playSound(crateCenter, Sound.BLOCK_NOTE_BLOCK_PLING,
-                            0.5f, 0.5f + (tick * 0.05f));
-                tick++;
+        // Buka GUI spin
+        Inventory spinGUI = Bukkit.createInventory(null, SPIN_GUI_SIZE,
+                SPIN_GUI_TITLE + " §8| §7" + crate.title);
+        buildSpinFrame(spinGUI, null, null);
+        spinningGUIs.put(uuid, spinGUI);
+        player.openInventory(spinGUI);
+
+        // Jalankan animasi
+        runSpinAnimation(player, spinGUI, crate, finalReward, finalRarity);
+    }
+
+    /**
+     * Build frame GUI
+     *
+     * Layout (3 baris x 9):
+     * Row 0 (slot  0- 8): border atas
+     * Row 1 (slot  9-17): area spin
+     * Row 2 (slot 18-26): border bawah
+     *
+     * Slot 13 (row 1 col 4) = tengah = hasil
+     */
+    private void buildSpinFrame(Inventory gui, ItemStack centerItem, Rarity rarity) {
+        // Border atas & bawah
+        ItemStack border = createGlassBorder(rarity);
+        for (int i = 0;  i < 9;  i++) gui.setItem(i,      border.clone());
+        for (int i = 18; i < 27; i++) gui.setItem(i,      border.clone());
+
+        // Baris tengah
+        for (int col = 0; col < 9; col++) {
+            int slot = 9 + col;
+            if (col == 4) {
+                // Slot tengah
+                gui.setItem(slot, centerItem != null ? centerItem : createQuestionMark());
+            } else {
+                gui.setItem(slot, createRandomColorGlass());
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }
+    }
 
+    private ItemStack createGlassBorder(Rarity rarity) {
+        Material mat = (rarity != null)
+                ? rarity.paneMaterial
+                : Material.WHITE_STAINED_GLASS_PANE;
+        return createItem(mat, "§r");
+    }
+
+    private ItemStack createQuestionMark() {
+        ItemStack item = new ItemStack(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta  meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§e§l?  ?  ?");
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createRandomColorGlass() {
+        Material[] glasses = {
+                Material.RED_STAINED_GLASS_PANE,
+                Material.ORANGE_STAINED_GLASS_PANE,
+                Material.YELLOW_STAINED_GLASS_PANE,
+                Material.LIME_STAINED_GLASS_PANE,
+                Material.CYAN_STAINED_GLASS_PANE,
+                Material.BLUE_STAINED_GLASS_PANE,
+                Material.PURPLE_STAINED_GLASS_PANE,
+                Material.MAGENTA_STAINED_GLASS_PANE,
+                Material.PINK_STAINED_GLASS_PANE,
+                Material.WHITE_STAINED_GLASS_PANE,
+        };
+        Material mat = glasses[ThreadLocalRandom.current().nextInt(glasses.length)];
+        return createItem(mat, "§r");
+    }
+
+    /**
+     * Animasi spin:
+     * Phase 0-2 : Cepat (interval 1t)  - glass random semua
+     * Phase 3-4 : Mulai lambat (2-3t)  - masih random
+     * Phase 5   : Lambat (4t)          - tengah mulai kedip reward
+     * Phase 6-7 : Sangat lambat (5-6t) - reward fix di tengah
+     * Reveal    : Border ganti rarity  - dekorasi muncul
+     */
+    private void runSpinAnimation(Player player, Inventory gui,
+                                   CrateData crate,
+                                   ItemStack finalReward, Rarity finalRarity) {
+        UUID uuid = player.getUniqueId();
+
+        // interval (tick antar update), phaseDuration (berapa update per phase)
+        int[] interval      = {1, 1, 1, 2, 3, 4, 5, 6};
+        int[] phaseDuration = {15,12,10, 8, 6, 5, 4, 4};
+
+        BukkitRunnable task = new BukkitRunnable() {
+            int phase     = 0;
+            int stepCount = 0; // update ke-berapa di phase ini
+            int waitTick  = 0; // counter buat interval
+
+            @Override
+            public void run() {
+                if (!player.isOnline()
+                        || !spinGUI(player).equals(gui)) {
+                    cleanupSpin(uuid);
+                    this.cancel();
+                    return;
+                }
+
+                // Tunggu interval
+                waitTick++;
+                if (waitTick < interval[phase]) return;
+                waitTick = 0;
+
+                // Phase selesai → naik
+                if (stepCount >= phaseDuration[phase]) {
+                    phase++;
+                    stepCount = 0;
+
+                    if (phase >= interval.length) {
+                        // Selesai → reveal
+                        this.cancel();
+                        revealResult(player, gui, crate, finalReward, finalRarity);
+                        return;
+                    }
+                }
+
+                // Update frame
+                updateFrame(gui, phase, finalReward, finalRarity, stepCount);
+
+                // Sound (makin lambat makin rendah pitch)
+                float pitch = Math.max(0.5f, 2.0f - (phase * 0.2f));
+                player.playSound(player.getLocation(),
+                        Sound.BLOCK_NOTE_BLOCK_HAT, 0.4f, pitch);
+
+                stepCount++;
+            }
+        };
+
+        task.runTaskTimer(plugin, 2L, 1L);
+        spinTasks.put(uuid, task);
+    }
+
+    private void updateFrame(Inventory gui, int phase,
+                              ItemStack finalReward, Rarity finalRarity,
+                              int stepCount) {
+        boolean showReward = (phase >= 6);
+        boolean blinking   = (phase == 5);
+
+        // Border: warna rarity kalau phase akhir
+        Rarity borderRarity = (phase >= 5) ? finalRarity : null;
+        ItemStack border = createGlassBorder(borderRarity);
+        for (int i = 0;  i < 9;  i++) gui.setItem(i,  border.clone());
+        for (int i = 18; i < 27; i++) gui.setItem(i,  border.clone());
+
+        // Baris tengah
+        for (int col = 0; col < 9; col++) {
+            int slot = 9 + col;
+            if (col == 4) {
+                // Tengah
+                if (showReward) {
+                    gui.setItem(slot, finalReward.clone());
+                } else if (blinking) {
+                    // Kedip antara reward dan placeholder
+                    gui.setItem(slot, (stepCount % 2 == 0)
+                            ? finalReward.clone()
+                            : createQuestionMark());
+                } else {
+                    gui.setItem(slot, createQuestionMark());
+                }
+            } else {
+                gui.setItem(slot, createRandomColorGlass());
+            }
+        }
+    }
+
+    /**
+     * Reveal final: dekorasi + efek + kasih reward
+     */
+    private void revealResult(Player player, Inventory gui,
+                               CrateData crate,
+                               ItemStack finalReward, Rarity finalRarity) {
+        UUID uuid = player.getUniqueId();
+        if (!player.isOnline()) { cleanupSpin(uuid); return; }
+
+        // Update GUI: border rarity + dekorasi
+        ItemStack border = createGlassBorder(finalRarity);
+        for (int i = 0;  i < 9;  i++) gui.setItem(i,  border.clone());
+        for (int i = 18; i < 27; i++) gui.setItem(i,  border.clone());
+
+        // Tengah = reward
+        gui.setItem(13, finalReward.clone());
+
+        // Slot 9,10,11 → arrow kiri
+        ItemStack left = createItem(Material.YELLOW_STAINED_GLASS_PANE, "§e§l◀◀◀");
+        gui.setItem(9,  left.clone());
+        gui.setItem(10, left.clone());
+        gui.setItem(11, left.clone());
+
+        // Slot 15,16,17 → arrow kanan
+        ItemStack right = createItem(Material.YELLOW_STAINED_GLASS_PANE, "§e§l▶▶▶");
+        gui.setItem(15, right.clone());
+        gui.setItem(16, right.clone());
+        gui.setItem(17, right.clone());
+
+        // Slot 12 → rarity badge
+        ItemStack badge = new ItemStack(finalRarity.paneMaterial);
+        ItemMeta  bMeta = badge.getItemMeta();
+        if (bMeta != null) {
+            bMeta.setDisplayName(finalRarity.displayName);
+            bMeta.setLore(List.of("§7Chance: §f" + finalRarity.weight + "%"));
+            badge.setItemMeta(bMeta);
+        }
+        gui.setItem(12, badge);
+
+        // Slot 14 → info
+        String rewardName = getItemDisplayName(finalReward);
+        ItemStack info = createItemWithLore(Material.PAPER,
+                "§f§l" + rewardName,
+                List.of(
+                    "§7Rarity : " + finalRarity.displayName,
+                    "§7Amount : §f" + finalReward.getAmount(),
+                    "",
+                    "§a§lCongrats! 🎉"
+                ));
+        gui.setItem(14, info);
+
+        // Sound & efek
+        Location loc = player.getLocation();
+        switch (finalRarity) {
+            case EASY ->
+                    player.playSound(loc, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
+            case MID ->
+                    player.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
+            case HARD -> {
+                player.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.8f);
+                player.playSound(loc, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1f);
+            }
+            case HARDCORE -> {
+                player.playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                player.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 2f);
+                spawnFirework(loc);
+            }
+            case EXCLUSIVE -> {
+                player.playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                player.playSound(loc, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.5f);
+                spawnFirework(loc);
+                spawnFirework(loc.clone().add( 1, 0,  0));
+                spawnFirework(loc.clone().add(-1, 0,  0));
+                spawnFirework(loc.clone().add( 0, 0,  1));
+                spawnFirework(loc.clone().add( 0, 0, -1));
+            }
+        }
+
+        // Tutup GUI & kasih reward 2 detik kemudian
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isOnline()) { animatingPlayers.remove(uuid); return; }
+            if (!player.isOnline()) { cleanupSpin(uuid); return; }
 
-            player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING,
-                    crateCenter, 100, 0.5, 1.0, 0.5, 0.5);
+            player.closeInventory();
 
-            switch (finalRarity) {
-                case EASY, MID ->
-                        player.playSound(crateCenter, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.2f);
-                case HARD ->
-                        player.playSound(crateCenter, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
-                case HARDCORE -> {
-                    player.playSound(crateCenter, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
-                    player.playSound(crateCenter, Sound.ENTITY_PLAYER_LEVELUP, 1f, 2f);
-                }
-                case EXCLUSIVE -> {
-                    player.playSound(crateCenter, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
-                    player.playSound(crateCenter, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.5f);
-                    try { player.getWorld().spawn(crateCenter, Firework.class); }
-                    catch (Exception ignored) {}
-                }
-            }
-
-            HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(finalReward);
+            // Kasih reward
+            HashMap<Integer, ItemStack> overflow =
+                    player.getInventory().addItem(finalReward.clone());
             if (!overflow.isEmpty()) {
                 for (ItemStack drop : overflow.values())
                     player.getWorld().dropItemNaturally(player.getLocation(), drop);
                 player.sendMessage("§e§lKZ §8» §eInventory full! Item dropped.");
             }
 
-            String rewardName = getItemDisplayName(finalReward);
-            player.sendMessage("");
-            player.sendMessage("§6§l┌─────────────────────────────────┐");
-            player.sendMessage("§6§l│       §f§l" + crate.title.toUpperCase() + " §6§l│");
-            player.sendMessage("§6§l└─────────────────────────────────┘");
-            player.sendMessage("");
-            player.sendMessage("  §7You received:");
-            player.sendMessage("  " + finalRarity.displayName + " §8» §f"
-                    + finalReward.getAmount() + "x " + rewardName);
-            player.sendMessage("");
+            // Chat
+            sendRewardMessage(player, crate, finalReward, finalRarity);
 
+            // Broadcast kalau rare
             if (finalRarity == Rarity.HARDCORE || finalRarity == Rarity.EXCLUSIVE) {
                 for (Player online : Bukkit.getOnlinePlayers()) {
                     online.sendMessage("  §6§l⭐ " + finalRarity.displayName
@@ -578,9 +750,62 @@ public class CrateSystem {
                 }
             }
 
-            animatingPlayers.remove(uuid);
-        }, 35L);
+            cleanupSpin(uuid);
+        }, 40L);
     }
+
+    private void sendRewardMessage(Player player, CrateData crate,
+                                    ItemStack reward, Rarity rarity) {
+        String name = getItemDisplayName(reward);
+        player.sendMessage("");
+        player.sendMessage("§6§l┌─────────────────────────────────┐");
+        player.sendMessage("§6§l│       §f§l" + crate.title.toUpperCase());
+        player.sendMessage("§6§l└─────────────────────────────────┘");
+        player.sendMessage("");
+        player.sendMessage("  §7You received:");
+        player.sendMessage("  " + rarity.displayName
+                + " §8» §f" + reward.getAmount() + "x " + name);
+        player.sendMessage("");
+    }
+
+    private void spawnFirework(Location loc) {
+        try {
+            Firework    fw   = loc.getWorld().spawn(loc, Firework.class);
+            FireworkMeta meta = fw.getFireworkMeta();
+            meta.addEffect(FireworkEffect.builder()
+                    .with(FireworkEffect.Type.BALL_LARGE)
+                    .withColor(Color.GOLD, Color.YELLOW)
+                    .withFade(Color.WHITE)
+                    .withFlicker()
+                    .build());
+            meta.setPower(1);
+            fw.setFireworkMeta(meta);
+        } catch (Exception ignored) {}
+    }
+
+    private void cleanupSpin(UUID uuid) {
+        animatingPlayers.remove(uuid);
+        spinningGUIs.remove(uuid);
+        BukkitRunnable task = spinTasks.remove(uuid);
+        if (task != null) {
+            try { task.cancel(); } catch (Exception ignored) {}
+        }
+    }
+
+    // Helper: ambil spin GUI player (null-safe)
+    private Inventory spinGUI(Player player) {
+        Inventory inv = spinningGUIs.get(player.getUniqueId());
+        return inv != null ? inv : Bukkit.createInventory(null, 9, "dummy");
+    }
+
+    public boolean isSpinningGUI(Player player, Inventory inv) {
+        Inventory spinGUI = spinningGUIs.get(player.getUniqueId());
+        return spinGUI != null && spinGUI.equals(inv);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  RARITY SELECTION
+    // ════════════════════════════════════════════════════════════════
 
     private Rarity selectRandomRarity() {
         double total = 0;
@@ -599,42 +824,38 @@ public class CrateSystem {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX 3: EDITOR GUI - Reward tidak balik ke inventory
+    //  EDITOR GUI
     // ════════════════════════════════════════════════════════════════
 
-    private static final int GUI_SIZE = 54;
-    private static final String GUI_TITLE_PREFIX = "§8§lCrate Editor: §r§b";
-    private static final int[] RARITY_COLUMNS = {0, 2, 4, 6, 8};
-    private static final int MAX_ITEMS_PER_RARITY = 4;
+    private static final int    GUI_SIZE             = 54;
+    private static final String GUI_TITLE_PREFIX     = "§8§lCrate Editor: §r§b";
+    private static final int[]  RARITY_COLUMNS       = {0, 2, 4, 6, 8};
+    private static final int    MAX_ITEMS_PER_RARITY = 4;
 
-    // ✅ FIX: Set untuk track slot mana yang LOCKED (tidak boleh diambil player)
     private static final Set<Integer> LOCKED_SLOTS = new HashSet<>();
     static {
-        // Row 0: header rarity (slot 0,2,4,6,8)
         LOCKED_SLOTS.addAll(List.of(0, 2, 4, 6, 8));
-        // Separator columns (col 1,3,5,7) di semua row
-        for (int row = 0; row < 6; row++) {
-            for (int col : new int[]{1, 3, 5, 7}) {
+        for (int row = 0; row < 6; row++)
+            for (int col : new int[]{1, 3, 5, 7})
                 LOCKED_SLOTS.add(row * 9 + col);
-            }
-        }
-        // Bottom bar (slot 45-53)
         for (int i = 45; i <= 53; i++) LOCKED_SLOTS.add(i);
     }
 
     public void openEditorGUI(Player player, CrateData crate) {
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE_PREFIX + crate.title);
+        Inventory gui = Bukkit.createInventory(null, GUI_SIZE,
+                GUI_TITLE_PREFIX + crate.title);
 
         // Header per rarity
         for (Rarity r : Rarity.values()) {
             int slot = RARITY_COLUMNS[r.column];
             ItemStack header = new ItemStack(r.paneMaterial);
-            ItemMeta meta = header.getItemMeta();
+            ItemMeta  meta   = header.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(r.displayName);
                 meta.setLore(List.of(
                         "§7Drop chance: §f" + r.weight + "%",
-                        "§7Items: §f" + crate.rewards.get(r).size() + "/" + MAX_ITEMS_PER_RARITY,
+                        "§7Items: §f" + crate.rewards.get(r).size()
+                                + "/" + MAX_ITEMS_PER_RARITY,
                         "",
                         "§eDrag items below to add rewards"
                 ));
@@ -650,71 +871,49 @@ public class CrateSystem {
             for (int row = 0; row < MAX_ITEMS_PER_RARITY; row++) {
                 int slot = (row + 1) * 9 + col;
                 if (row < items.size()) gui.setItem(slot, items.get(row).clone());
-                // ✅ FIX: Slot kosong dibiarkan KOSONG (bukan filler) agar bisa diisi
             }
         }
 
-        // Separator filler (kolom 1,3,5,7)
+        // Separator filler
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, "§8");
-        for (int row = 0; row < 5; row++) { // row 0-4 (row 5 = bottom bar)
-            for (int col : new int[]{1, 3, 5, 7}) {
+        for (int row = 0; row < 5; row++)
+            for (int col : new int[]{1, 3, 5, 7})
                 gui.setItem(row * 9 + col, filler.clone());
-            }
-        }
 
         // Bottom bar
-        gui.setItem(45, createItem(Material.BOOK,          "§e§lInfo §7- Drag items to reward slots"));
+        gui.setItem(45, createItem(Material.BOOK,
+                "§e§lInfo §7- Drag items to reward slots"));
         gui.setItem(49, createItem(Material.EMERALD_BLOCK, "§a§lSAVE & CLOSE"));
         gui.setItem(53, createItem(Material.BARRIER,       "§c§lCLOSE without saving"));
-        for (int col : new int[]{46, 47, 48, 50, 51, 52}) gui.setItem(col, filler.clone());
+        for (int col : new int[]{46, 47, 48, 50, 51, 52})
+            gui.setItem(col, filler.clone());
 
         editingPlayers.put(player.getUniqueId(), crate.id);
         player.openInventory(gui);
         player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 1f, 1f);
     }
 
-    /**
-     * ✅ FIX: handleEditorClick sekarang return boolean untuk di-cancel di listener
-     *
-     * Return true  = event HARUS di-cancel (slot locked)
-     * Return false = event BOLEH (slot reward, player bisa taruh/ambil item)
-     */
     public boolean handleEditorClick(Player player, Inventory inventory, int slot) {
         if (!editingPlayers.containsKey(player.getUniqueId())) return false;
 
-        // Tombol SAVE
         if (slot == 49) {
             saveEditorContents(player, inventory);
             player.closeInventory();
             player.sendMessage("§a§lKZ §8» §aCrate rewards saved!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.5f);
-            return true; // cancel event
+            return true;
         }
 
-        // Tombol CLOSE
         if (slot == 53) {
-            // ✅ FIX: Kembalikan item reward ke player sebelum tutup
             returnRewardItemsToPlayer(player, inventory);
             player.closeInventory();
             player.sendMessage("§c§lKZ §8» §7Editor closed without saving.");
             return true;
         }
 
-        // ✅ FIX: Cek apakah slot ini LOCKED
-        // Kalau locked → cancel event (item tidak bisa diambil/diletakkan)
-        if (LOCKED_SLOTS.contains(slot)) {
-            return true; // cancel event di listener!
-        }
-
-        // ✅ FIX: Slot reward (col 0,2,4,6,8 di row 1-4) → ALLOW
-        // Player bebas drag/drop item ke sini
-        return false; // jangan cancel event
+        return LOCKED_SLOTS.contains(slot);
     }
 
-    /**
-     * ✅ FIX: Kembalikan item yang ada di reward slots ke inventory player
-     * Dipanggil saat close tanpa save
-     */
     private void returnRewardItemsToPlayer(Player player, Inventory inventory) {
         for (Rarity r : Rarity.values()) {
             int col = RARITY_COLUMNS[r.column];
@@ -723,11 +922,11 @@ public class CrateSystem {
                 ItemStack item = inventory.getItem(slot);
                 if (item != null && item.getType() != Material.AIR
                         && item.getType() != Material.GRAY_STAINED_GLASS_PANE) {
-                    HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(item.clone());
-                    if (!overflow.isEmpty()) {
+                    HashMap<Integer, ItemStack> overflow =
+                            player.getInventory().addItem(item.clone());
+                    if (!overflow.isEmpty())
                         for (ItemStack drop : overflow.values())
                             player.getWorld().dropItemNaturally(player.getLocation(), drop);
-                    }
                     inventory.setItem(slot, null);
                 }
             }
@@ -735,10 +934,10 @@ public class CrateSystem {
     }
 
     private void saveEditorContents(Player player, Inventory inventory) {
-        String crateId = editingPlayers.get(player.getUniqueId());
+        String    crateId = editingPlayers.get(player.getUniqueId());
         if (crateId == null) return;
-        CrateData crate = crates.get(crateId);
-        if (crate == null) return;
+        CrateData crate   = crates.get(crateId);
+        if (crate == null)   return;
 
         for (Rarity r : Rarity.values()) crate.rewards.get(r).clear();
 
@@ -748,9 +947,8 @@ public class CrateSystem {
                 int slot = row * 9 + col;
                 ItemStack item = inventory.getItem(slot);
                 if (item != null && item.getType() != Material.AIR
-                        && item.getType() != Material.GRAY_STAINED_GLASS_PANE) {
+                        && item.getType() != Material.GRAY_STAINED_GLASS_PANE)
                     crate.rewards.get(r).add(item.clone());
-                }
             }
         }
 
@@ -760,25 +958,13 @@ public class CrateSystem {
     }
 
     public void handleEditorClose(Player player) {
-        // ✅ FIX: Jangan langsung remove - cek dulu apakah close dari tombol atau ESC
-        // Kalau ESC (bukan dari tombol), item di GUI hilang → kembalikan ke player
-        // Tapi kita tidak bisa bedakan ESC vs tombol di sini
-        // Solusi: handleEditorClose dipanggil SETELAH closeInventory()
-        // Jadi kalau dari tombol, editingPlayers sudah di-remove di saveEditorContents
-        // Kalau masih ada di editingPlayers = player ESC → data tidak disimpan
-        if (editingPlayers.containsKey(player.getUniqueId())) {
-            editingPlayers.remove(player.getUniqueId());
-        }
+        editingPlayers.remove(player.getUniqueId());
     }
 
     public boolean isEditing(Player player) {
         return editingPlayers.containsKey(player.getUniqueId());
     }
 
-    /**
-     * ✅ FIX: Method baru untuk dicek di CrateListener
-     * Cek apakah slot ini locked (tidak boleh diinteraksi)
-     */
     public boolean isLockedSlot(int slot) {
         return LOCKED_SLOTS.contains(slot);
     }
@@ -788,14 +974,15 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     public void openPreviewGUI(Player player, CrateData crate) {
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, "§8Preview: §b" + crate.title);
+        Inventory gui = Bukkit.createInventory(null, GUI_SIZE,
+                "§8Preview: §b" + crate.title);
 
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, "§8");
 
         for (Rarity r : Rarity.values()) {
             int col = RARITY_COLUMNS[r.column];
             ItemStack header = new ItemStack(r.paneMaterial);
-            ItemMeta meta = header.getItemMeta();
+            ItemMeta  meta   = header.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(r.displayName);
                 meta.setLore(List.of("§7Chance: §f" + r.weight + "%"));
@@ -823,7 +1010,7 @@ public class CrateSystem {
     public void listCrates(Player player) {
         player.sendMessage("");
         player.sendMessage("§6§l┌─────────────────────────────────┐");
-        player.sendMessage("§6§l│        §f§lCRATE LIST                §6§l│");
+        player.sendMessage("§6§l│        §f§lCRATE LIST             §6§l│");
         player.sendMessage("§6§l└─────────────────────────────────┘");
         if (crates.isEmpty()) {
             player.sendMessage("  §7No crates created yet.");
@@ -841,7 +1028,7 @@ public class CrateSystem {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  UTILITY METHODS
+    //  UTILITY
     // ════════════════════════════════════════════════════════════════
 
     public boolean isCrate(Block block) {
@@ -874,8 +1061,12 @@ public class CrateSystem {
     private void loadData() {
         dataFile = new File(plugin.getDataFolder(), "crates.yml");
         if (!dataFile.exists()) {
-            try { plugin.getDataFolder().mkdirs(); dataFile.createNewFile(); }
-            catch (IOException e) { plugin.getLogger().severe("[Crate] Failed to create crates.yml"); }
+            try {
+                plugin.getDataFolder().mkdirs();
+                dataFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("[Crate] Failed to create crates.yml");
+            }
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         if (!dataConfig.contains("crates")) return;
@@ -884,19 +1075,20 @@ public class CrateSystem {
         if (section == null) return;
 
         for (String crateId : section.getKeys(false)) {
-            String path = "crates." + crateId;
+            String    path  = "crates." + crateId;
             CrateData crate = new CrateData(crateId);
-            crate.title        = dataConfig.getString(path + ".title", "Crate");
-            crate.description1 = dataConfig.getString(path + ".desc1", "");
-            crate.description2 = dataConfig.getString(path + ".desc2", "");
-            crate.shulkerColor = dataConfig.getString(path + ".color", "PURPLE");
+            crate.title        = dataConfig.getString(path + ".title",  "Crate");
+            crate.description1 = dataConfig.getString(path + ".desc1",  "");
+            crate.description2 = dataConfig.getString(path + ".desc2",  "");
+            crate.shulkerColor = dataConfig.getString(path + ".color",  "PURPLE");
 
             if (dataConfig.contains(path + ".key"))
                 crate.keyItem = dataConfig.getItemStack(path + ".key");
 
             if (dataConfig.contains(path + ".location")) {
                 String lp = path + ".location";
-                World w = Bukkit.getWorld(dataConfig.getString(lp + ".world", "world"));
+                World w = Bukkit.getWorld(
+                        dataConfig.getString(lp + ".world", "world"));
                 if (w != null) {
                     crate.location = new Location(w,
                             dataConfig.getDouble(lp + ".x"),
@@ -912,7 +1104,8 @@ public class CrateSystem {
                     List<?> items = dataConfig.getList(rp);
                     if (items != null)
                         for (Object obj : items)
-                            if (obj instanceof ItemStack item) crate.rewards.get(r).add(item);
+                            if (obj instanceof ItemStack item)
+                                crate.rewards.get(r).add(item);
                 }
             }
 
@@ -924,12 +1117,12 @@ public class CrateSystem {
         dataConfig.set("crates", null);
         for (Map.Entry<String, CrateData> entry : crates.entrySet()) {
             CrateData crate = entry.getValue();
-            String path = "crates." + entry.getKey();
+            String    path  = "crates." + entry.getKey();
             dataConfig.set(path + ".title",  crate.title);
             dataConfig.set(path + ".desc1",  crate.description1);
             dataConfig.set(path + ".desc2",  crate.description2);
             dataConfig.set(path + ".color",  crate.shulkerColor);
-            if (crate.keyItem != null) dataConfig.set(path + ".key", crate.keyItem);
+            if (crate.keyItem  != null) dataConfig.set(path + ".key", crate.keyItem);
             if (crate.location != null) {
                 String lp = path + ".location";
                 dataConfig.set(lp + ".world", crate.location.getWorld().getName());
@@ -941,7 +1134,9 @@ public class CrateSystem {
                 dataConfig.set(path + ".rewards." + r.name(), crate.rewards.get(r));
         }
         try { dataConfig.save(dataFile); }
-        catch (IOException e) { plugin.getLogger().severe("[Crate] Failed to save crates.yml"); }
+        catch (IOException e) {
+            plugin.getLogger().severe("[Crate] Failed to save crates.yml");
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -949,8 +1144,10 @@ public class CrateSystem {
     // ════════════════════════════════════════════════════════════════
 
     private String locationToKey(Location loc) {
-        return loc.getWorld().getName() + "," + loc.getBlockX()
-                + "," + loc.getBlockY() + "," + loc.getBlockZ();
+        return loc.getWorld().getName() + ","
+                + loc.getBlockX() + ","
+                + loc.getBlockY() + ","
+                + loc.getBlockZ();
     }
 
     private String getItemDisplayName(ItemStack item) {
@@ -959,15 +1156,27 @@ public class CrateSystem {
             return item.getItemMeta().getDisplayName();
         StringBuilder sb = new StringBuilder();
         for (String w : item.getType().name().replace("_", " ").split(" "))
-            if (!w.isEmpty()) sb.append(Character.toUpperCase(w.charAt(0)))
-                    .append(w.substring(1).toLowerCase()).append(" ");
+            if (!w.isEmpty())
+                sb.append(Character.toUpperCase(w.charAt(0)))
+                  .append(w.substring(1).toLowerCase()).append(" ");
         return sb.toString().trim();
     }
 
     private ItemStack createItem(Material mat, String name) {
         ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
+        ItemMeta  meta = item.getItemMeta();
         if (meta != null) { meta.setDisplayName(name); item.setItemMeta(meta); }
+        return item;
+    }
+
+    private ItemStack createItemWithLore(Material mat, String name, List<String> lore) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
         return item;
     }
 
@@ -975,6 +1184,11 @@ public class CrateSystem {
         saveData();
         animatingPlayers.clear();
         editingPlayers.clear();
+        spinTasks.forEach((uuid, task) -> {
+            try { task.cancel(); } catch (Exception ignored) {}
+        });
+        spinTasks.clear();
+        spinningGUIs.clear();
         for (CrateData crate : crates.values()) removeHolograms(crate);
         plugin.getLogger().info("[Crate] System shutdown.");
     }
