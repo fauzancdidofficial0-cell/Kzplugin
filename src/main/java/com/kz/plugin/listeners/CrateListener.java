@@ -25,25 +25,27 @@ import org.bukkit.inventory.ItemStack;
 public class CrateListener implements Listener {
 
     private final KZPlugin plugin;
+
     private static final String EDITOR_PREFIX  = "§8§lCrate Editor: §r§b";
     private static final String PREVIEW_PREFIX = "§8Preview: §b";
+    private static final String SPIN_PREFIX    = "§8§l✦ §6§lGACHA §8§l✦";
 
     public CrateListener(KZPlugin plugin) {
         this.plugin = plugin;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  HELPER
-    // ════════════════════════════════════════════════════════════════
-
     private CrateSystem cs() { return plugin.getCrateSystem(); }
 
-    private boolean isEditorOpen(Player player) {
-        return player.getOpenInventory().getTitle().startsWith(EDITOR_PREFIX);
+    private boolean isEditorOpen(Player p) {
+        return p.getOpenInventory().getTitle().startsWith(EDITOR_PREFIX);
     }
 
-    private boolean isPreviewOpen(Player player) {
-        return player.getOpenInventory().getTitle().startsWith(PREVIEW_PREFIX);
+    private boolean isPreviewOpen(Player p) {
+        return p.getOpenInventory().getTitle().startsWith(PREVIEW_PREFIX);
+    }
+
+    private boolean isSpinOpen(Player p) {
+        return p.getOpenInventory().getTitle().startsWith(SPIN_PREFIX);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -53,20 +55,17 @@ public class CrateListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (cs() == null) return;
-
         Block block = event.getClickedBlock();
         if (block == null) return;
         if (!block.getType().name().contains("SHULKER_BOX")) return;
         if (!cs().isCrate(block)) return;
 
         Player player = event.getPlayer();
-        event.setCancelled(true); // ✅ Cancel dulu supaya shulker tidak kebuka
+        event.setCancelled(true);
 
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             cs().handleCrateRightClick(player, block);
-
         } else if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
-            // ✅ FIX: Shift+klik kiri = buka editor (admin only)
             if (player.hasPermission("kzplugin.admin") && player.isSneaking()) {
                 cs().handleCrateLeftClick(player, block);
             }
@@ -74,7 +73,7 @@ public class CrateListener implements Listener {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX: INVENTORY CLICK - Handle semua tipe click
+    //  INVENTORY CLICK
     // ════════════════════════════════════════════════════════════════
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -82,7 +81,15 @@ public class CrateListener implements Listener {
         if (cs() == null) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        // ── Preview GUI: block semua interaksi ──
+        Inventory topInv = event.getView().getTopInventory();
+
+        // ── Spin GUI: block SEMUA klik ──
+        if (isSpinOpen(player) || cs().isSpinningGUI(player, topInv)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // ── Preview GUI: block semua ──
         if (isPreviewOpen(player)) {
             event.setCancelled(true);
             return;
@@ -91,98 +98,75 @@ public class CrateListener implements Listener {
         // ── Editor GUI ──
         if (!isEditorOpen(player)) return;
 
-        int rawSlot  = event.getRawSlot();
-        int invSize  = event.getInventory().getSize(); // 54
-
+        int rawSlot = event.getRawSlot();
+        int invSize = event.getInventory().getSize(); // 54
         ClickType clickType = event.getClick();
-        Inventory topInv    = event.getInventory();
 
-        // ── SHIFT+CLICK dari player inventory (bawah) ──
-        // rawSlot >= invSize = slot di inventory player (bawah layar)
+        // Klik di inventory player (bawah) dengan shift → coba taruh ke reward slot
         if (rawSlot >= invSize) {
             if (clickType == ClickType.SHIFT_LEFT || clickType == ClickType.SHIFT_RIGHT) {
-                // ✅ FIX: Shift+click dari bawah → coba taruh di reward slot
-                // Kita handle manual: cari slot reward kosong
                 event.setCancelled(true);
                 ItemStack clickedItem = event.getCurrentItem();
                 if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
-                // Cari slot reward kosong di editor
                 boolean placed = tryPlaceInRewardSlot(topInv, clickedItem.clone());
                 if (placed) {
-                    // Kurangi/hapus item dari inventory player
-                    if (clickedItem.getAmount() > 1) {
+                    if (clickedItem.getAmount() > 1)
                         clickedItem.setAmount(clickedItem.getAmount() - 1);
-                    } else {
+                    else
                         event.setCurrentItem(null);
-                    }
                     player.sendMessage("§a§lKZ §8» §7Item added to reward slot!");
                 } else {
                     player.sendMessage("§e§lKZ §8» §eAll reward slots are full!");
                 }
             }
-            // Klik biasa di player inventory = boleh (tidak dicancel)
             return;
         }
 
-        // ── Klik di GUI editor (rawSlot < 54) ──
-
-        // Number key / drop ke GUI dari luar = cancel kalau ke locked slot
-        if (clickType == ClickType.NUMBER_KEY) {
+        // Number key / double click → cancel kalau locked
+        if (clickType == ClickType.NUMBER_KEY || clickType == ClickType.DOUBLE_CLICK) {
             if (cs().isLockedSlot(rawSlot)) {
                 event.setCancelled(true);
                 return;
             }
         }
 
-        // Double click = cancel (bisa ambil item dari locked slot)
         if (clickType == ClickType.DOUBLE_CLICK) {
             event.setCancelled(true);
             return;
         }
 
-        // Handle via CrateSystem
         boolean shouldCancel = cs().handleEditorClick(player, topInv, rawSlot);
-        if (shouldCancel) {
-            event.setCancelled(true);
-        }
+        if (shouldCancel) event.setCancelled(true);
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ✅ FIX: INVENTORY DRAG - Handle drag item ke GUI
+    //  INVENTORY DRAG
     // ════════════════════════════════════════════════════════════════
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (cs() == null) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!isEditorOpen(player)) return;
 
-        int invSize = event.getInventory().getSize(); // 54
+        Inventory topInv = event.getView().getTopInventory();
 
-        // Cek apakah ada drag yang mengenai slot locked di GUI
-        boolean touchesLockedSlot = false;
-        boolean touchesGuiSlot    = false;
-
-        for (int slot : event.getRawSlots()) {
-            if (slot < invSize) {
-                // Slot ada di GUI
-                touchesGuiSlot = true;
-                if (cs().isLockedSlot(slot)) {
-                    touchesLockedSlot = true;
-                    break;
-                }
-            }
-        }
-
-        if (touchesLockedSlot) {
-            // ✅ FIX: Cancel drag kalau kena locked slot
+        // Block drag di spin GUI
+        if (isSpinOpen(player) || cs().isSpinningGUI(player, topInv)) {
             event.setCancelled(true);
             return;
         }
 
-        // ✅ Drag ke reward slot = boleh (tidak cancel)
-        // Bukkit sudah handle placement nya secara otomatis
+        if (!isEditorOpen(player)) return;
+
+        int invSize = event.getInventory().getSize();
+
+        for (int slot : event.getRawSlots()) {
+            if (slot < invSize && cs().isLockedSlot(slot)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -231,9 +215,8 @@ public class CrateListener implements Listener {
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (cs() == null) return;
         if (event.getEntity() instanceof ArmorStand
-                && cs().isHologram(event.getEntity())) {
+                && cs().isHologram(event.getEntity()))
             event.setCancelled(true);
-        }
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -243,9 +226,8 @@ public class CrateListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPrepareAnvil(PrepareAnvilEvent event) {
         if (cs() == null) return;
-        var anvil = event.getInventory();
         for (int i = 0; i < 2; i++) {
-            ItemStack item = anvil.getItem(i);
+            ItemStack item = event.getInventory().getItem(i);
             if (item != null && cs().isAnyCrateKey(item)) {
                 event.setResult(null);
                 return;
@@ -256,9 +238,8 @@ public class CrateListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPrepareGrindstone(PrepareGrindstoneEvent event) {
         if (cs() == null) return;
-        var inv = event.getInventory();
         for (int i = 0; i < 2; i++) {
-            ItemStack item = inv.getItem(i);
+            ItemStack item = event.getInventory().getItem(i);
             if (item != null && cs().isAnyCrateKey(item)) {
                 event.setResult(null);
                 return;
@@ -280,9 +261,9 @@ public class CrateListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPrepareSmithing(PrepareSmithingEvent event) {
         if (cs() == null) return;
-        var inv = event.getInventory();
         for (ItemStack item : new ItemStack[]{
-                inv.getInputEquipment(), inv.getInputMineral()}) {
+                event.getInventory().getInputEquipment(),
+                event.getInventory().getInputMineral()}) {
             if (item != null && cs().isAnyCrateKey(item)) {
                 event.setResult(null);
                 return;
@@ -291,21 +272,13 @@ public class CrateListener implements Listener {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ✅ HELPER: Cari reward slot kosong & taruh item
+    //  HELPER: Taruh item ke reward slot kosong
     // ════════════════════════════════════════════════════════════════
 
-    /**
-     * Cari slot reward kosong di editor GUI dan taruh item
-     * Reward slots: col 0,2,4,6,8 di row 1-4 (slot 9,18,27,36 dst)
-     *
-     * @return true kalau berhasil ditempatkan
-     */
     private boolean tryPlaceInRewardSlot(Inventory gui, ItemStack item) {
-        // Reward columns: 0, 2, 4, 6, 8
         int[] rewardCols = {0, 2, 4, 6, 8};
-
         for (int col : rewardCols) {
-            for (int row = 1; row <= 4; row++) { // row 1-4 (row 0 = header)
+            for (int row = 1; row <= 4; row++) {
                 int slot = row * 9 + col;
                 ItemStack existing = gui.getItem(slot);
                 if (existing == null || existing.getType() == Material.AIR) {
@@ -314,6 +287,6 @@ public class CrateListener implements Listener {
                 }
             }
         }
-        return false; // Semua slot penuh
+        return false;
     }
 }
